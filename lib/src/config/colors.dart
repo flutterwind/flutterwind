@@ -1,0 +1,43 @@
+import 'package:flutter/material.dart';
+
+const Map<String, Map<int, Color>> defaultTailwindColors = {
+  'slate': {
+    50: Color(0xFFF8FAFC),
+    100: Color(0xFFF1F5F9),
+    200: Color(0xFFE2E8F0),
+    300: Color(0xFFCBD5E1),
+    400: Color(0xFF94A3B8),
+    500: Color(0xFF64748B),
+    600: Color(0xFF475569),
+    700: Color(0xFF334155),
+    800: Color(0xFF1E293B),
+    900: Color(0xFF0F172A),
+    950: Color(0xFF020617),
+  },
+  'gray': {
+    50: Color(0xFFF9FAFB),
+    100: Color(0xFFF3F4F6),
+    200: Color(0xFFE5E7EB),
+    300: Color(0xFFD1D5DB),
+    400: Color(0xFF9CA3AF),
+    500: Color(0xFF6B7280),
+    600: Color(0xFF4B5563),
+    700: Color(0xFF374151),
+    800: Color(0xFF1F2937),
+    900: Color(0xFF111827),
+    950: Color(0xFF030712),
+  },
+  'red': {
+    50: Color(0xFFFDF2F2),
+    100: Color(0xFFFDE8E8),
+    200: Color(0xFFFBD5D5),
+    300: Color(0xFFF8B4B4),
+    400: Color(0xFFF98080),
+    500: Color(0xFFF05252),
+    600: Color(0xFFE02424),
+    700: Color(0xFFC81E1E),
+    800: Color(0xFF9B1C1C),
+    900: Color(0xFF771D1D),
+    950: Color(0xFF3F0E0E),
+  },
+};
