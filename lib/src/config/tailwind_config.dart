@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'colors.dart';
+import 'text.dart';
+import 'spacing.dart';
 
 class TailwindConfig {
   static Map<String, double> screens = {};
   static Map<String, Map<int, Color>> colors = defaultTailwindColors;
-  static Map<String, double> spacing = {};
+  static Map<String, double> spacing = defaultSpacingScale;
   static Map<String, List<String>> fontFamily = {};
-  static Map<String, double> fontSize = {};
+  static Map<String, double> fontSize = defaultFontSize;
+  static Map<String, FontWeight> fontWeight = defaultFontWeight;
   static Map<String, double> borderRadius = {};
   static Map<String, List<BoxShadow>> boxShadow = {};
 
@@ -18,9 +21,20 @@ class TailwindConfig {
       final userColors = _parseColors(yamlMap['colors']);
       colors = mergeColors(defaultTailwindColors, userColors);
     }
-    spacing = _parseSpacing(yamlMap['spacing']);
+    if (yamlMap['spacing'] != null) {
+      final userSpacing = _parseFontSize(yamlMap['spacing']);
+      spacing = mergeSpacing(defaultSpacingScale, userSpacing);
+    }
     fontFamily = _parseFontFamily(yamlMap['fontFamily']);
-    fontSize = _parseFontSize(yamlMap['fontSize']);
+    if (yamlMap['fontSize'] != null) {
+      final userFontSize = _parseFontSize(yamlMap['fontSize']);
+      fontSize = mergeFontSize(defaultFontSize, userFontSize);
+    }
+    if (yamlMap['fontWeight'] != null) {
+      final userFontWeight = _parseFontWeight(yamlMap['fontSize']);
+      fontWeight = mergeFontWeight(defaultFontWeight, userFontWeight);
+    }
+
     borderRadius = _parseBorderRadius(yamlMap['borderRadius']);
     boxShadow = _parseBoxShadows(yamlMap['boxShadow']); // Renamed method
   }
@@ -60,6 +74,12 @@ class TailwindConfig {
     if (data == null) return {};
     return Map<String, double>.from(
         data.map((key, value) => MapEntry(key, (value as num).toDouble())));
+  }
+
+  static Map<String, FontWeight> _parseFontWeight(dynamic data) {
+    if (data == null) return {};
+    return Map<String, FontWeight>.from(data.map((key, value) =>
+        MapEntry(key, FontWeight.values[(value as num).toInt() ~/ 100 - 1])));
   }
 
   static Map<String, double> _parseBorderRadius(dynamic data) {
@@ -112,5 +132,20 @@ class TailwindConfig {
       }
     });
     return merged;
+  }
+
+  static Map<String, double> mergeFontSize(
+      Map<String, double> defaults, Map<String, double> user) {
+    return {...defaults, ...user};
+  }
+
+  static Map<String, FontWeight> mergeFontWeight(
+      Map<String, FontWeight> defaults, Map<String, FontWeight> user) {
+    return {...defaults, ...user}; // Properly merges user-defined values
+  }
+
+  static Map<String, double> mergeSpacing(
+      Map<String, double> defaults, Map<String, double> user) {
+    return {...defaults, ...user}; // Properly merges user-defined values
   }
 }
