@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutterwind/src/utils/parser.dart';
+import 'package:flutterwinds/src/utils/parser.dart';
 
 class BordersClass {
   static const Map<String, BorderRadius> borderRadiusScale = {

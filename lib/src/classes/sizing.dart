@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutterwind/src/utils/parser.dart';
+import 'package:flutterwinds/src/utils/parser.dart';
 
 class SizingClass {
   // A basic scale for spacing (you can adjust as needed).

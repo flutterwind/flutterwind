@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutterwind/src/classes/sizing.dart';
-import 'package:flutterwind/src/classes/spacings.dart';
-import 'package:flutterwind/src/classes/colors.dart';
-import 'package:flutterwind/src/classes/typography.dart';
-import 'package:flutterwind/src/classes/borders.dart';
-import 'package:flutterwind/src/classes/opacity.dart';
-import 'package:flutterwind/src/classes/shadows.dart';
+import 'package:flutterwinds/src/classes/sizing.dart';
+import 'package:flutterwinds/src/classes/spacings.dart';
+import 'package:flutterwinds/src/classes/colors.dart';
+import 'package:flutterwinds/src/classes/typography.dart';
+import 'package:flutterwinds/src/classes/borders.dart';
+import 'package:flutterwinds/src/classes/opacity.dart';
+import 'package:flutterwinds/src/classes/shadows.dart';
 
 class FlutterWindStyle {
   EdgeInsets? padding;
