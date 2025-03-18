@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutterwinds/src/config/config_loader.dart';
-import 'package:flutterwinds/src/utils/logger.dart';
+import 'package:flutterwind_core/src/config/config_loader.dart';
+import 'package:flutterwind_core/src/utils/logger.dart';
 
 /// FlutterWindInitializer is a widget that loads the Tailwind configuration
 /// asynchronously. Wrap your app with this widget to auto-load configuration.

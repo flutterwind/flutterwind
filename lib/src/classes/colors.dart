@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutterwinds/src/config/tailwind_config.dart';
-import 'package:flutterwinds/src/utils/parser.dart';
+import 'package:flutterwind_core/src/config/tailwind_config.dart';
+import 'package:flutterwind_core/src/utils/parser.dart';
 
 class ColorsClass {
   static const Map<String, Color> baseColors = {

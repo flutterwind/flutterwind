@@ -1,4 +1,4 @@
-import 'package:flutterwinds/src/utils/parser.dart';
+import 'package:flutterwind_core/src/utils/parser.dart';
 
 class OpacityClass {
   static const Map<String, double> opacityScale = {

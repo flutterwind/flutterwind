@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutterwinds/src/utils/parser.dart';
+import 'package:flutterwind_core/src/utils/parser.dart';
 
 /// Extension on Widget to support Tailwind‑like classes.
 /// Example:
