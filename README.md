@@ -2,7 +2,7 @@
 <p align="center">
   <a href="https://flutterwind.dev" target="_blank">
     <img src="https://flutterwind.dev/img/logo.svg" alt="Tailwind CSS" width="70" height="70">
-    <h1 align="center" style="color:red;">NativeWind</h1>
+    <h1 align="center" style="color:red;">FlutterWind</h1>
   </a>
 </p>
 
@@ -29,7 +29,7 @@ FlutterWind processes your styles during your application's build step and uses 
 
 ## Installation
 
-If you have an existing project, [use these guides](https://www.flutterwind.dev/getting-started/installation) to configure NativeWind for your respective stack.
+If you have an existing project, [use these guides](https://www.flutterwind.dev/getting-started/installation) to configure FlutterWind for your respective stack.
 
 ## Features
 
