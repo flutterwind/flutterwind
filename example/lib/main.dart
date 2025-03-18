@@ -60,7 +60,8 @@ class App extends StatelessWidget {
           [
             Container(
               child: Text("Project UI/UX"),
-            ).className('p-4 bg-green rounded-lg shadow-lg w-[35%] h-[80px]'),
+            ).className(
+                'p-4 bg-purple-300 rounded-lg shadow-lg w-[35%] h-[80px]'),
             Container(
               child: [
                 Container(

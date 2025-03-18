@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'colors.dart';
 
 class TailwindConfig {
   static Map<String, double> screens = {};
-  static Map<String, Color> colors = {};
+  static Map<String, Map<int, Color>> colors = defaultTailwindColors;
   static Map<String, double> spacing = {};
   static Map<String, List<String>> fontFamily = {};
   static Map<String, double> fontSize = {};
@@ -13,7 +14,10 @@ class TailwindConfig {
     if (yamlMap == null) return;
 
     screens = _parseScreens(yamlMap['screens']);
-    colors = _parseColors(yamlMap['colors']);
+    if (yamlMap['colors'] != null) {
+      final userColors = _parseColors(yamlMap['colors']);
+      colors = mergeColors(defaultTailwindColors, userColors);
+    }
     spacing = _parseSpacing(yamlMap['spacing']);
     fontFamily = _parseFontFamily(yamlMap['fontFamily']);
     fontSize = _parseFontSize(yamlMap['fontSize']);
@@ -27,10 +31,17 @@ class TailwindConfig {
         data.map((key, value) => MapEntry(key, (value as num).toDouble())));
   }
 
-  static Map<String, Color> _parseColors(dynamic data) {
+  static Map<String, Map<int, Color>> _parseColors(dynamic data) {
     if (data == null) return {};
-    return Map<String, Color>.from(
-        data.map((key, value) => MapEntry(key, _parseColor(value))));
+    final Map<String, Map<int, Color>> userColors = {};
+    (data as Map).forEach((colorName, shades) {
+      final Map<int, Color> shadeMap = {};
+      (shades as Map).forEach((shade, hex) {
+        shadeMap[int.parse(shade.toString())] = _parseHexColor(hex.toString());
+      });
+      userColors[colorName.toString()] = shadeMap;
+    });
+    return userColors;
   }
 
   static Map<String, double> _parseSpacing(dynamic data) {
@@ -81,5 +92,25 @@ class TailwindConfig {
       blurRadius: (data['blurRadius'] as num).toDouble(),
       spreadRadius: (data['spreadRadius'] as num).toDouble(),
     );
+  }
+
+  static Color _parseHexColor(String hexColor) {
+    hexColor = hexColor.toUpperCase().replaceAll('#', '');
+    if (hexColor.length == 6) hexColor = 'FF$hexColor';
+    return Color(int.parse(hexColor, radix: 16));
+  }
+
+  static Map<String, Map<int, Color>> mergeColors(
+      Map<String, Map<int, Color>> defaults,
+      Map<String, Map<int, Color>> user) {
+    final merged = Map<String, Map<int, Color>>.from(defaults);
+    user.forEach((key, value) {
+      if (merged.containsKey(key)) {
+        merged[key] = {...merged[key]!, ...value};
+      } else {
+        merged[key] = value;
+      }
+    });
+    return merged;
   }
 }
