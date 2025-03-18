@@ -1,7 +1,12 @@
 name: flutterwind
-description: "A new Flutter package project."
+description: "Flutter utility-first universal design system - powered by Tailwind CSS"
 version: 0.0.1
-homepage:
+repository: https://github.com/flutterwind/flutterwind/tree/main
+issue_tracker: https://github.com/flutterwind/flutterwind/issues
+homepage: https://flutterwind.dev
+documentation: https://flutterwind.dev/getting-started
+topics: [tailwind, flutter, design-system]
+funding: [https://github.com/sponsors/Flutterwind]
 
 environment:
   sdk: ">=3.4.4 <4.0.0"
