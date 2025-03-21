@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutterwind_core/src/classes/grid.dart';
 import 'package:flutterwind_core/src/classes/sizing.dart';
 import 'package:flutterwind_core/src/classes/spacings.dart';
 import 'package:flutterwind_core/src/classes/colors.dart';
@@ -6,6 +7,7 @@ import 'package:flutterwind_core/src/classes/typography.dart';
 import 'package:flutterwind_core/src/classes/borders.dart';
 import 'package:flutterwind_core/src/classes/opacity.dart';
 import 'package:flutterwind_core/src/classes/shadows.dart';
+import 'package:flutterwind_core/src/inherited/flutterwind_inherited.dart';
 
 class FlutterWindStyle {
   EdgeInsets? padding;
@@ -17,6 +19,7 @@ class FlutterWindStyle {
   BorderRadius? borderRadius;
   double? opacity;
   List<BoxShadow>? boxShadows;
+  TextAlign? textAlign;
 
   // New sizing properties:
   double? width; // Fixed width in pixels
@@ -27,7 +30,7 @@ class FlutterWindStyle {
   // NEW: Inset shadows (not directly supported by Flutter’s BoxShadow)
   List<BoxShadow>? insetBoxShadows;
 
-  // NEW: Ring properties – for focus outlines etc.
+  // Ring properties – for focus outlines etc.
   BoxShadow? ringShadow;
   Color? ringColor;
   double? ringWidth;
@@ -38,13 +41,25 @@ class FlutterWindStyle {
   bool isColumn = false;
   List<Widget>? children;
 
-  // New gesture properties:
+  // Gesture properties:
   VoidCallback? onTap;
   VoidCallback? onDoubleTap;
   VoidCallback? onLongPress;
 
+  // Grid properties
+  bool isGrid = false;
+  int? gridColumns;
+  double? gridGap;
+  Map<int, int> colSpans = {}; // Track child index -> span
+
+  //Animation
+  Duration? transitionDuration;
+  Curve? transitionCurve;
+
   Widget build(Widget child) {
     Widget current = child;
+    print("current ::: $current");
+    print("children ::: $children");
 
     if (widthFactor != null || heightFactor != null) {
       current = FractionallySizedBox(
@@ -69,25 +84,37 @@ class FlutterWindStyle {
       current = Opacity(opacity: opacity!, child: current);
     }
 
-    // Apply Container styles
-    if (padding != null ||
+    // Handle main container styling with animation support
+    final hasContainerStyles = padding != null ||
+        margin != null ||
         backgroundColor != null ||
         borderRadius != null ||
-        boxShadows != null) {
-      current = Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: borderRadius,
-          boxShadow: boxShadows,
-        ),
-        child: current,
-      );
-    }
+        boxShadows != null;
 
-    // Apply margin
-    if (margin != null) {
-      current = Padding(padding: margin!, child: current);
+    if (hasContainerStyles) {
+      current = transitionDuration != null
+          ? AnimatedContainer(
+              duration: transitionDuration!,
+              curve: transitionCurve ?? Curves.easeInOut,
+              padding: padding,
+              margin: margin,
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: borderRadius,
+                boxShadow: boxShadows,
+              ),
+              child: current,
+            )
+          : Container(
+              padding: padding,
+              margin: margin,
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: borderRadius,
+                boxShadow: boxShadows,
+              ),
+              child: current,
+            );
     }
 
     if (insetBoxShadows != null) {
@@ -95,21 +122,24 @@ class FlutterWindStyle {
       // For now, we leave them as a property on the style.
     }
 
-    // Apply ring effect by layering a Container with a border if ringShadow is set.
+    // Handle ring effect using box shadows
     if (ringShadow != null || ringColor != null || ringWidth != null) {
       current = Container(
         decoration: BoxDecoration(
-          // Use border to simulate ring effect.
-          border: Border.all(
-            color: ringColor ?? Colors.black,
-            width: ringWidth ?? 1,
-          ),
+          boxShadow: [
+            if (ringShadow != null) ringShadow!,
+            BoxShadow(
+              color: ringColor ?? Colors.transparent,
+              spreadRadius: (ringWidth ?? 0) * 0.5,
+              blurRadius: 0,
+            ),
+          ],
         ),
         child: current,
       );
     }
 
-    // Handle Flexbox (Row/Column) if needed
+    // Handle flex layouts
     if (isFlex && children != null) {
       current = isColumn
           ? Column(
@@ -135,7 +165,33 @@ class FlutterWindStyle {
       );
     }
 
+    if (isGrid) {
+      return _buildGridWidget(current);
+    }
+
     return current;
+  }
+
+  Widget _buildGridWidget(Widget currentChildren) {
+    print("children?.length :::: ${children?.length}");
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: children?.length ?? 0,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: gridColumns ?? 2,
+        mainAxisSpacing: gridGap ?? 0,
+        crossAxisSpacing: gridGap ?? 0,
+        childAspectRatio: 1.0,
+      ),
+      itemBuilder: (context, index) {
+        final span = colSpans[index] ?? 1;
+        return FractionallySizedBox(
+          widthFactor: span / (gridColumns ?? 2),
+          child: children![index],
+        );
+      },
+    );
   }
 }
 
@@ -152,20 +208,38 @@ Widget applyFlutterWind(Widget widget, List<String> classes) {
     OpacityClass.apply(cls, style);
     ShadowsClass.apply(cls, style);
     SizingClass.apply(cls, style);
+    GridClass.apply(cls, style);
     // LayoutClass.apply(cls, style);
+
+    // Handle animations
+    if (cls.startsWith('transition')) {
+      style.transitionDuration = const Duration(milliseconds: 300); // Default
+    }
+    if (cls.startsWith('duration-')) {
+      final match = RegExp(r'duration-(\d+)').firstMatch(cls);
+      if (match != null) {
+        style.transitionDuration =
+            Duration(milliseconds: int.parse(match.group(1)!));
+      }
+    }
+    if (cls == 'ease-in') style.transitionCurve = Curves.easeIn;
+    if (cls == 'ease-out') style.transitionCurve = Curves.easeOut;
+    if (cls == 'ease-in-out') style.transitionCurve = Curves.easeInOut;
   }
+
+  Widget builtWidget;
 
   // If it's a Text widget, apply text styles and then wrap it in container styles.
   if (isTextWidget) {
-    final textWidget = widget as Text;
-    final styledText = Text(
+    final textWidget = widget;
+    builtWidget = Text(
       textWidget.data ?? "",
       style: TextStyle(
         fontSize: style.textSize,
         fontWeight: style.fontWeight,
         color: style.textColor,
       ),
-      textAlign: textWidget.textAlign,
+      textAlign: style.textAlign,
       textDirection: textWidget.textDirection,
       locale: textWidget.locale,
       softWrap: textWidget.softWrap,
@@ -174,8 +248,20 @@ Widget applyFlutterWind(Widget widget, List<String> classes) {
       maxLines: textWidget.maxLines,
       semanticsLabel: textWidget.semanticsLabel,
     );
-    return style.build(styledText);
+  } else {
+    builtWidget = style.build(widget);
   }
 
-  return style.build(widget);
+  // Wrap with inherited widget if grid parent
+  if (style.isGrid) {
+    print("style.isGrid :::: ${style.isGrid}");
+    print("builtWidget :::: ${builtWidget}");
+
+    return FlutterWindInherited(
+      style: style,
+      child: builtWidget,
+    );
+  }
+
+  return builtWidget;
 }

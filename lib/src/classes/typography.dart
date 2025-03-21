@@ -6,9 +6,18 @@ class TypographyClass {
   static void apply(String cls, FlutterWindStyle style) {
     if (cls.startsWith('text-')) {
       final value = cls.substring(5);
-      double? size = _parseTextSize(value);
-      if (size != null) {
-        style.textSize = size;
+      if (value == 'center') {
+        print("value for center ::: $value");
+        style.textAlign = TextAlign.center;
+      } else if (value == 'left') {
+        style.textAlign = TextAlign.left;
+      } else if (value == 'right') {
+        style.textAlign = TextAlign.right;
+      } else {
+        double? size = _parseTextSize(value);
+        if (size != null) {
+          style.textSize = size;
+        }
       }
     } else if (cls.startsWith('font-')) {
       final value = cls.substring(5);

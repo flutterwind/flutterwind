@@ -30,15 +30,18 @@ void main(List<String> arguments) {
 void _initializeConfig() {
   const configContent = '''
 screens:
-  sm: 640px
-  md: 768px
-  lg: 1024px
-  xl: 1280px
-  '2xl': 1536px
+  sm: "640px"
+  md: "768px"
+  lg: "1024px"
+  xl: "1280px"
+  2xl: "1536px"
 colors:
-  red-500: "#ef4444"
-  blue-500: "#3b82f6"
-  green-500: "#10b981"
+  primary: "#3490dc"
+  secondary: "#ffed4a"
+  danger: "#e3342f"
+  success: "#38c172"
+  warning: "#ffed4a"
+  info: "#6cb2eb"
 spacing:
   1: 4.0
   2: 8.0

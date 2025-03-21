@@ -78,6 +78,12 @@ class ColorsClass {
       if (shade != null && TailwindConfig.colors.containsKey(base)) {
         return TailwindConfig.colors[base]?[shade];
       }
+    } else if (parts.length == 1) {
+      final base = parts[0];
+      if (TailwindConfig.colors.containsKey(base)) {
+        return TailwindConfig.colors[base]
+            ?[500]; // Return the full color map instead of forcing shade 500
+      }
     }
     return baseColors[value];
   }

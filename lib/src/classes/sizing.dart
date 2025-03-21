@@ -66,8 +66,6 @@ class SizingClass {
           final view = WidgetsBinding.instance.platformDispatcher.views.first;
           final screenWidth = view.physicalSize.width / view.devicePixelRatio;
           final screenWidthParam = screenWidth * (percent / 100);
-          print("inner ::: $screenWidth");
-          print("inner ::: $screenWidthParam");
           style.width = screenWidth * (percent / 100);
         }
       } else {

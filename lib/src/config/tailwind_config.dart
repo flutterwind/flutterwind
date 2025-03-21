@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutterwind_core/src/utils/logger.dart';
 import 'colors.dart';
 import 'text.dart';
 import 'spacing.dart';
@@ -15,8 +16,6 @@ class TailwindConfig {
 
   static void updateFromYaml(dynamic yamlMap) {
     if (yamlMap == null) return;
-
-    screens = _parseScreens(yamlMap['screens']);
     if (yamlMap['colors'] != null) {
       final userColors = _parseColors(yamlMap['colors']);
       colors = mergeColors(defaultTailwindColors, userColors);
@@ -25,7 +24,6 @@ class TailwindConfig {
       final userSpacing = _parseFontSize(yamlMap['spacing']);
       spacing = mergeSpacing(defaultSpacingScale, userSpacing);
     }
-    fontFamily = _parseFontFamily(yamlMap['fontFamily']);
     if (yamlMap['fontSize'] != null) {
       final userFontSize = _parseFontSize(yamlMap['fontSize']);
       fontSize = mergeFontSize(defaultFontSize, userFontSize);
@@ -35,26 +33,36 @@ class TailwindConfig {
       fontWeight = mergeFontWeight(defaultFontWeight, userFontWeight);
     }
 
+    screens = _parseScreens(yamlMap['screens']);
+    fontFamily = _parseFontFamily(yamlMap['fontFamily']);
     borderRadius = _parseBorderRadius(yamlMap['borderRadius']);
     boxShadow = _parseBoxShadows(yamlMap['boxShadow']); // Renamed method
   }
 
   static Map<String, double> _parseScreens(dynamic data) {
     if (data == null) return {};
-    return Map<String, double>.from(
-        data.map((key, value) => MapEntry(key, (value as num).toDouble())));
+    return Map<String, double>.from(data.map((key, value) {
+      final parsedValue = value.toString().replaceAll('px', ''); // Remove 'px'
+      return MapEntry(key, double.tryParse(parsedValue) ?? 0.0);
+    }));
   }
 
   static Map<String, Map<int, Color>> _parseColors(dynamic data) {
     if (data == null) return {};
     final Map<String, Map<int, Color>> userColors = {};
-    (data as Map).forEach((colorName, shades) {
-      final Map<int, Color> shadeMap = {};
-      (shades as Map).forEach((shade, hex) {
-        shadeMap[int.parse(shade.toString())] = _parseHexColor(hex.toString());
-      });
-      userColors[colorName.toString()] = shadeMap;
+    data.forEach((colorName, value) {
+      if (value is Map) {
+        final Map<int, Color> shadeMap = {};
+        value.forEach((shade, hex) {
+          shadeMap[int.tryParse(shade.toString()) ?? 500] =
+              _parseHexColor(hex.toString());
+        });
+        userColors[colorName] = shadeMap;
+      } else if (value is String) {
+        userColors[colorName] = {500: _parseHexColor(value)};
+      }
     });
+
     return userColors;
   }
 
@@ -89,7 +97,6 @@ class TailwindConfig {
   }
 
   static Map<String, List<BoxShadow>> _parseBoxShadows(dynamic data) {
-    // Renamed method
     if (data == null) return {};
     return Map<String, List<BoxShadow>>.from(data.map((key, value) => MapEntry(
         key, List<BoxShadow>.from(value.map((v) => _createBoxShadow(v))))));
@@ -104,7 +111,6 @@ class TailwindConfig {
   }
 
   static BoxShadow _createBoxShadow(dynamic data) {
-    // Renamed method
     return BoxShadow(
       color: _parseColor(data['color']),
       offset: Offset((data['offsetX'] as num).toDouble(),
@@ -115,9 +121,19 @@ class TailwindConfig {
   }
 
   static Color _parseHexColor(String hexColor) {
+    if (hexColor.isEmpty || !RegExp(r'^[#A-Fa-f0-9]+$').hasMatch(hexColor)) {
+      return Colors.transparent; // Fallback to transparent color
+    }
+
     hexColor = hexColor.toUpperCase().replaceAll('#', '');
-    if (hexColor.length == 6) hexColor = 'FF$hexColor';
-    return Color(int.parse(hexColor, radix: 16));
+    if (hexColor.length == 6) hexColor = 'FF$hexColor'; // Add alpha if missing
+
+    try {
+      return Color(int.parse(hexColor, radix: 16));
+    } catch (e) {
+      Log.e("Error parsing hex color: $hexColor");
+      return Colors.transparent;
+    }
   }
 
   static Map<String, Map<int, Color>> mergeColors(

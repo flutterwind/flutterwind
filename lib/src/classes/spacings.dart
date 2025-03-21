@@ -38,8 +38,8 @@ class Spacings {
 
     EdgeInsets currentPadding = style.padding ?? EdgeInsets.zero;
     style.padding = EdgeInsets.only(
-      left: start ? spacing : currentPadding.left,
-      right: end ? spacing : currentPadding.right,
+      left: start || horizontal || all ? spacing : currentPadding.left,
+      right: end || horizontal || all ? spacing : currentPadding.right,
       top: vertical || all ? spacing : currentPadding.top,
       bottom: vertical || all ? spacing : currentPadding.bottom,
     );
@@ -56,8 +56,8 @@ class Spacings {
 
     EdgeInsets currentMargin = style.margin ?? EdgeInsets.zero;
     style.margin = EdgeInsets.only(
-      left: start ? spacing : currentMargin.left,
-      right: end ? spacing : currentMargin.right,
+      left: start || horizontal || all ? spacing : currentMargin.left,
+      right: end || horizontal || all ? spacing : currentMargin.right,
       top: vertical || all ? spacing : currentMargin.top,
       bottom: vertical || all ? spacing : currentMargin.bottom,
     );
