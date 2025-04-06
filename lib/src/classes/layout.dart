@@ -1,19 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutterwind_core/src/utils/parser.dart';
 
-extension FlutterWindFlexExtension on Iterable<Widget> {
+/// GridItemWrapper tracks column span information for grid items
+class GridItemWrapper extends StatelessWidget {
+  final Widget child;
+  final int colSpan;
+
+  const GridItemWrapper({
+    Key? key,
+    required this.child,
+    this.colSpan = 1,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return child;
+  }
+}
+
+/// Extension to add colSpan to any widget for grid layouts
+extension ColSpanExtension on Widget {
+  Widget colSpan(int span) {
+    return GridItemWrapper(
+      child: this,
+      colSpan: span,
+    );
+  }
+}
+
+extension FlutterWindLayoutExtension on Iterable<Widget> {
   Widget className(String classString) {
     final classes = classString.split(RegExp(r'\s+'));
 
-    // Process flex-related classes:
+    // Check if this is a grid layout
+    if (classes.contains('grid')) {
+      return _buildGridLayout(classes);
+    }
+
+    // Otherwise handle as flex layout
+    return _buildFlexLayout(classes);
+  }
+
+  Widget _buildFlexLayout(List<String> classes) {
+    // Process flex-related classes
     bool isColumn = classes.contains('flex-col');
-    // Default to row if neither flex-col nor flex-row is specified.
-    if (!classes.contains('flex-col') && !classes.contains('flex-row')) {
+
+    // If flex is specified without direction, default to row
+    if (classes.contains('flex') &&
+        !isColumn &&
+        !classes.contains('flex-row')) {
       isColumn = false;
     }
 
+    // Parse alignment options
     MainAxisAlignment mainAxisAlignment = MainAxisAlignment.start;
-    CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.center;
+    CrossAxisAlignment crossAxisAlignment =
+        isColumn ? CrossAxisAlignment.stretch : CrossAxisAlignment.center;
     double? gap;
 
     for (final c in classes) {
@@ -53,8 +95,13 @@ extension FlutterWindFlexExtension on Iterable<Widget> {
           case 'stretch':
             crossAxisAlignment = CrossAxisAlignment.stretch;
             break;
+          case 'baseline':
+            crossAxisAlignment = CrossAxisAlignment.baseline;
+            break;
           default:
-            crossAxisAlignment = CrossAxisAlignment.center;
+            crossAxisAlignment = isColumn
+                ? CrossAxisAlignment.stretch
+                : CrossAxisAlignment.center;
         }
       } else if (c.startsWith('gap-')) {
         final value = c.substring('gap-'.length);
@@ -64,6 +111,8 @@ extension FlutterWindFlexExtension on Iterable<Widget> {
 
     final widgets = toList();
     final spacedChildren = <Widget>[];
+
+    // Add widgets with appropriate spacing
     for (int i = 0; i < widgets.length; i++) {
       spacedChildren.add(widgets[i]);
       if (i < widgets.length - 1 && gap != null) {
@@ -77,17 +126,143 @@ extension FlutterWindFlexExtension on Iterable<Widget> {
         ? Column(
             mainAxisAlignment: mainAxisAlignment,
             crossAxisAlignment: crossAxisAlignment,
+            mainAxisSize: MainAxisSize.min,
             children: spacedChildren,
           )
         : Row(
             mainAxisAlignment: mainAxisAlignment,
             crossAxisAlignment: crossAxisAlignment,
+            mainAxisSize: MainAxisSize.min,
             children: spacedChildren,
           );
 
-    // Now wrap the flex container with container styling (bg, padding, etc.)
-    // We reuse our applyFlutterWind() function, which applies all classes.
+    // Apply other classes for styling (background, padding, etc.)
     return applyFlutterWind(flexWidget, classes);
+  }
+
+  /// Builds a grid layout
+  Widget _buildGridLayout(List<String> classes) {
+    // Parse grid properties
+    int gridColumns = 2; // Default 2 columns
+    double gridGap = 8.0; // Default gap
+
+    for (final cls in classes) {
+      if (cls.startsWith('grid-cols-')) {
+        final match = RegExp(r'grid-cols-(\d+)').firstMatch(cls);
+        if (match != null) {
+          gridColumns = int.parse(match.group(1)!);
+        }
+      } else if (cls.startsWith('gap-')) {
+        final value = cls.substring('gap-'.length);
+        gridGap = _parseSpacing(value) ?? 8.0;
+      }
+    }
+
+    // Process widgets to handle column spans
+    List<Widget> rows = [];
+    List<Widget> currentRow = [];
+    int currentColSpan = 0;
+    final widgets = toList();
+
+    for (int i = 0; i < widgets.length; i++) {
+      final child = widgets[i];
+
+      // Get column span if specified
+      int span = 1;
+      Widget actualChild = child;
+
+      if (child is GridItemWrapper) {
+        span = child.colSpan.clamp(1, gridColumns);
+        actualChild = child.child;
+      }
+
+      // Check if we need to start a new row
+      if (currentColSpan + span > gridColumns) {
+        // Fill remaining space in current row if needed
+        if (currentColSpan < gridColumns) {
+          currentRow.add(
+            Expanded(
+              flex: gridColumns - currentColSpan,
+              child: Container(), // Empty spacer
+            ),
+          );
+        }
+
+        // Add current row
+        rows.add(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: currentRow,
+          ),
+        );
+
+        // Start a new row
+        currentRow = [];
+        currentColSpan = 0;
+      }
+
+      // Add child to current row with appropriate span
+      currentRow.add(
+        Expanded(
+          flex: span,
+          child: Padding(
+            padding: EdgeInsets.all(gridGap / 2),
+            child: actualChild,
+          ),
+        ),
+      );
+
+      currentColSpan += span;
+
+      // If we've filled a row, add it to rows
+      if (currentColSpan >= gridColumns) {
+        rows.add(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: currentRow,
+          ),
+        );
+
+        // Start a new row
+        currentRow = [];
+        currentColSpan = 0;
+      }
+    }
+
+    // Add any remaining children as a final row
+    if (currentRow.isNotEmpty) {
+      // Fill remaining space if needed
+      if (currentColSpan < gridColumns) {
+        currentRow.add(
+          Expanded(
+            flex: gridColumns - currentColSpan,
+            child: Container(), // Empty spacer
+          ),
+        );
+      }
+
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: currentRow,
+        ),
+      );
+    }
+
+    // Create a column of rows for the grid
+    final gridWidget = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: rows.map((row) {
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: gridGap / 2),
+          child: row,
+        );
+      }).toList(),
+    );
+
+    // Apply other styling (background, padding, etc.)
+    return applyFlutterWind(gridWidget, classes);
   }
 }
 

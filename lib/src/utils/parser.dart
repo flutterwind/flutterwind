@@ -38,20 +38,11 @@ class FlutterWindStyle {
 
   MainAxisAlignment? mainAxisAlignment;
   CrossAxisAlignment? crossAxisAlignment;
-  bool isFlex = false;
-  bool isColumn = false;
-  List<Widget>? children;
 
   // Gesture properties:
   VoidCallback? onTap;
   VoidCallback? onDoubleTap;
   VoidCallback? onLongPress;
-
-  // Grid properties
-  bool isGrid = false;
-  int? gridColumns;
-  double? gridGap;
-  Map<int, int> colSpans = {}; // Track child index -> span
 
   //Animation
   Duration? transitionDuration;
@@ -59,11 +50,6 @@ class FlutterWindStyle {
 
   Widget build(Widget child) {
     Widget current = child;
-
-    // Special case: if this is a grid, handle it differently
-    if (isGrid && children != null) {
-      return _buildGridWidget(child);
-    }
 
     if (widthFactor != null || heightFactor != null) {
       current = FractionallySizedBox(
@@ -143,23 +129,6 @@ class FlutterWindStyle {
       );
     }
 
-    // Handle flex layouts
-    if (isFlex && children != null) {
-      current = isColumn
-          ? Column(
-              mainAxisAlignment: mainAxisAlignment ?? MainAxisAlignment.start,
-              crossAxisAlignment:
-                  crossAxisAlignment ?? CrossAxisAlignment.start,
-              children: children!,
-            )
-          : Row(
-              mainAxisAlignment: mainAxisAlignment ?? MainAxisAlignment.start,
-              crossAxisAlignment:
-                  crossAxisAlignment ?? CrossAxisAlignment.center,
-              children: children!,
-            );
-    }
-
     if (onTap != null || onDoubleTap != null) {
       current = GestureDetector(
         onTap: onTap,
@@ -172,31 +141,31 @@ class FlutterWindStyle {
     return current;
   }
 
-  Widget _buildGridWidget(Widget currentChildren) {
-    if (children == null || children!.isEmpty) {
-      Log.e("No children provided for grid");
-      return Container(); // Return empty container if no children
-    }
-    print("Grid cols: ${colSpans}");
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: children?.length ?? 0,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: gridColumns ?? 2,
-        mainAxisSpacing: gridGap ?? 0,
-        crossAxisSpacing: gridGap ?? 0,
-        childAspectRatio: 1.0,
-      ),
-      itemBuilder: (context, index) {
-        final span = colSpans[index] ?? 1;
-        return FractionallySizedBox(
-          widthFactor: span / (gridColumns ?? 2),
-          child: children![index],
-        );
-      },
-    );
-  }
+  // Widget _buildGridWidget(Widget currentChildren) {
+  //   if (children == null || children!.isEmpty) {
+  //     Log.e("No children provided for grid");
+  //     return Container(); // Return empty container if no children
+  //   }
+  //   print("Grid cols: ${colSpans}");
+  //   return GridView.builder(
+  //     shrinkWrap: true,
+  //     physics: const NeverScrollableScrollPhysics(),
+  //     itemCount: children?.length ?? 0,
+  //     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+  //       crossAxisCount: gridColumns ?? 2,
+  //       mainAxisSpacing: gridGap ?? 0,
+  //       crossAxisSpacing: gridGap ?? 0,
+  //       childAspectRatio: 1.0,
+  //     ),
+  //     itemBuilder: (context, index) {
+  //       final span = colSpans[index] ?? 1;
+  //       return FractionallySizedBox(
+  //         widthFactor: span / (gridColumns ?? 2),
+  //         child: children![index],
+  //       );
+  //     },
+  //   );
+  // }
 }
 
 /// Parses and applies Tailwind-like classes to a widget.
@@ -212,7 +181,7 @@ Widget applyFlutterWind(Widget widget, List<String> classes) {
     OpacityClass.apply(cls, style);
     ShadowsClass.apply(cls, style);
     SizingClass.apply(cls, style);
-    GridClass.apply(cls, style);
+    // GridClass.apply(cls, style);
     // LayoutClass.apply(cls, style);
 
     // Handle animations
@@ -255,14 +224,5 @@ Widget applyFlutterWind(Widget widget, List<String> classes) {
   } else {
     builtWidget = style.build(widget);
   }
-
-  // Wrap with inherited widget if grid parent
-  if (style.isGrid) {
-    return FlutterWindInherited(
-      style: style,
-      child: builtWidget,
-    );
-  }
-
   return builtWidget;
 }
