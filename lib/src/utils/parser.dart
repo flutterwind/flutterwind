@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutterwind_core/src/classes/grid.dart';
 import 'package:flutterwind_core/src/classes/sizing.dart';
 import 'package:flutterwind_core/src/classes/spacings.dart';
 import 'package:flutterwind_core/src/classes/colors.dart';
@@ -140,32 +139,6 @@ class FlutterWindStyle {
 
     return current;
   }
-
-  // Widget _buildGridWidget(Widget currentChildren) {
-  //   if (children == null || children!.isEmpty) {
-  //     Log.e("No children provided for grid");
-  //     return Container(); // Return empty container if no children
-  //   }
-  //   print("Grid cols: ${colSpans}");
-  //   return GridView.builder(
-  //     shrinkWrap: true,
-  //     physics: const NeverScrollableScrollPhysics(),
-  //     itemCount: children?.length ?? 0,
-  //     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-  //       crossAxisCount: gridColumns ?? 2,
-  //       mainAxisSpacing: gridGap ?? 0,
-  //       crossAxisSpacing: gridGap ?? 0,
-  //       childAspectRatio: 1.0,
-  //     ),
-  //     itemBuilder: (context, index) {
-  //       final span = colSpans[index] ?? 1;
-  //       return FractionallySizedBox(
-  //         widthFactor: span / (gridColumns ?? 2),
-  //         child: children![index],
-  //       );
-  //     },
-  //   );
-  // }
 }
 
 /// Parses and applies Tailwind-like classes to a widget.
@@ -181,8 +154,6 @@ Widget applyFlutterWind(Widget widget, List<String> classes) {
     OpacityClass.apply(cls, style);
     ShadowsClass.apply(cls, style);
     SizingClass.apply(cls, style);
-    // GridClass.apply(cls, style);
-    // LayoutClass.apply(cls, style);
 
     // Handle animations
     if (cls.startsWith('transition')) {
