@@ -65,7 +65,7 @@ class ColorsClass {
 
   static Color? _parseHexColor(String hex) {
     hex = hex.replaceFirst('#', '');
-    if (hex.length == 6) hex = 'FF' + hex;
+    if (hex.length == 6) hex = 'FF$hex';
     int? intColor = int.tryParse(hex, radix: 16);
     return intColor != null ? Color(intColor) : null;
   }

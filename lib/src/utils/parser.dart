@@ -8,6 +8,7 @@ import 'package:flutterwind_core/src/classes/borders.dart';
 import 'package:flutterwind_core/src/classes/opacity.dart';
 import 'package:flutterwind_core/src/classes/shadows.dart';
 import 'package:flutterwind_core/src/inherited/flutterwind_inherited.dart';
+import 'package:flutterwind_core/src/utils/logger.dart';
 
 class FlutterWindStyle {
   EdgeInsets? padding;
@@ -58,8 +59,11 @@ class FlutterWindStyle {
 
   Widget build(Widget child) {
     Widget current = child;
-    print("current ::: $current");
-    print("children ::: $children");
+
+    // Special case: if this is a grid, handle it differently
+    if (isGrid && children != null) {
+      return _buildGridWidget(child);
+    }
 
     if (widthFactor != null || heightFactor != null) {
       current = FractionallySizedBox(
@@ -165,15 +169,15 @@ class FlutterWindStyle {
       );
     }
 
-    if (isGrid) {
-      return _buildGridWidget(current);
-    }
-
     return current;
   }
 
   Widget _buildGridWidget(Widget currentChildren) {
-    print("children?.length :::: ${children?.length}");
+    if (children == null || children!.isEmpty) {
+      Log.e("No children provided for grid");
+      return Container(); // Return empty container if no children
+    }
+    print("Grid cols: ${colSpans}");
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -254,9 +258,6 @@ Widget applyFlutterWind(Widget widget, List<String> classes) {
 
   // Wrap with inherited widget if grid parent
   if (style.isGrid) {
-    print("style.isGrid :::: ${style.isGrid}");
-    print("builtWidget :::: ${builtWidget}");
-
     return FlutterWindInherited(
       style: style,
       child: builtWidget,

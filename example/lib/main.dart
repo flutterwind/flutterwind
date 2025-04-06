@@ -50,7 +50,7 @@ class _AppState extends State<App> {
           Container(
             child: [
               Container(
-                child: Text("Board")
+                child: const Text("Board")
                     .className("text-black font-semibold text-center"),
               )
                   .className(cn({
@@ -60,7 +60,7 @@ class _AppState extends State<App> {
                     onTap: () => setSelectedTab(0),
                   ),
               Container(
-                child: Text("List")
+                child: const Text("List")
                     .className("text-black font-semibold text-center"),
               )
                   .className(cn({
@@ -70,7 +70,7 @@ class _AppState extends State<App> {
                     onTap: () => setSelectedTab(1),
                   ),
               Container(
-                child: Text("Timeline")
+                child: const Text("Timeline")
                     .className("text-black font-semibold text-center"),
               )
                   .className(cn({
@@ -84,7 +84,7 @@ class _AppState extends State<App> {
           ).className("w-full px-2"),
           [
             Container(
-              child: Text("Box1"),
+              child: const Text("Box1"),
             )
                 .className(
                     'p-4 bg-purple-300 rounded-lg shadow-lg w-[35%] h-[80px]')
@@ -92,15 +92,15 @@ class _AppState extends State<App> {
             Container(
               child: [
                 Container(
-                  child: Icon(Icons.add),
+                  child: const Icon(Icons.add),
                 ).className("bg-black-300 rounded-full p-2"),
-                Text("Item 3"),
+                const Text("Item 3"),
               ].className("flex flex-col items-start justify-center gap-2"),
             )
                 .className(
                     'p-4 bg-[#e376a0] rounded-lg shadow-lg w-[35%] h-[80px]')
                 .colSpan(1),
-          ].className('grid grid-cols-3'),
+          ].className('flex gap-2 w-full items-center justify-center'),
         ].className(
             'flex flex-col items-start justify-start gap-3 p-4 w-full h-auto '),
       ),
