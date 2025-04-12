@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutterwind_core/flutterwind.dart';
 import 'package:flutterwind_core/src/config/config_loader.dart';
 import 'package:flutterwind_core/src/utils/logger.dart';
 

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:args/args.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 
 final Logger logger = Logger(
   printer: PrettyPrinter(),
