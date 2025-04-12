@@ -1,4 +1,4 @@
-library;
+library flutterwind_core;
 
 export 'src/flutterwind_core.dart';
 export 'src/extensions/gesture_extension.dart';
