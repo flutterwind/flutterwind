@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:args/args.dart';
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
 
 final Logger logger = Logger(
   printer: PrettyPrinter(),
 );
 
+// Add a new command for scanning components
 void main(List<String> arguments) {
   final parser = ArgParser()
     ..addCommand('init')
@@ -42,32 +44,6 @@ colors:
   success: "#38c172"
   warning: "#ffed4a"
   info: "#6cb2eb"
-spacing:
-  1: 4.0
-  2: 8.0
-  3: 12.0
-  4: 16.0
-  5: 20.0
-  6: 24.0
-fontFamily:
-  sans: ['ui-sans-serif', 'system-ui']
-  serif: ['ui-serif', 'Georgia']
-  mono: ['ui-monospace', 'SFMono-Regular']
-fontSize:
-  sm: 12.0
-  base: 16.0
-  lg: 18.0
-  xl: 24.0
-borderRadius:
-  none: 0.0
-  sm: 2.0
-  md: 4.0
-  lg: 8.0
-  full: 9999.0
-boxShadow:
-  sm: '0 1px 2px rgba(0, 0, 0, 0.05)'
-  md: '0 4px 6px rgba(0, 0, 0, 0.1)'
-  lg: '0 10px 15px rgba(0, 0, 0, 0.15)'
 ''';
 
   try {
@@ -85,6 +61,15 @@ boxShadow:
 }
 
 void _printUsage(ArgParser parser) {
-  logger.i('Usage: flutter pub run flutterwind init');
+  logger.i('Usage: flutter pub run flutterwind [command]');
+  logger.i('Commands:');
+  logger.i('  init     Initialize FlutterWind configuration');
+  logger.i('  runner   Scan and register page components');
+  logger.i('  page     Generate a new page component');
+  logger.i('    --name, -n (required)  Name of the page to generate');
+  logger.i('    --type, -t             Type of widget (stateless or stateful)');
+  logger.i('    --route, -r            Route path for the page');
+  logger.i('    --dir, -d              Directory to create the page in');
+  logger.i('    --file, -f             Custom file name (e.g., index.dart)');
   logger.i(parser.usage);
 }

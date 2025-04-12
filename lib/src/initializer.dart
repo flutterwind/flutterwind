@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutterwind_core/flutterwind.dart';
 import 'package:flutterwind_core/src/config/config_loader.dart';
 import 'package:flutterwind_core/src/utils/logger.dart';
 
@@ -6,13 +9,18 @@ import 'package:flutterwind_core/src/utils/logger.dart';
 /// asynchronously. Wrap your app with this widget to auto-load configuration.
 class FlutterWind extends StatefulWidget {
   final Widget child;
-  const FlutterWind({super.key, required this.child});
+  final Widget? loadingWidget;
+  const FlutterWind({
+    super.key,
+    required this.child,
+    this.loadingWidget,
+  });
 
   @override
   State<FlutterWind> createState() => _FlutterWindState();
 }
 
-class _FlutterWindState extends State<FlutterWind> {
+class _FlutterWindState extends State<FlutterWind> with WidgetsBindingObserver {
   bool _isLoaded = false;
 
   @override
@@ -24,9 +32,11 @@ class _FlutterWindState extends State<FlutterWind> {
   void _loadConfig() async {
     try {
       await ConfigLoader.loadConfig();
-      setState(() {
-        _isLoaded = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoaded = true;
+        });
+      }
     } catch (e, stackTrace) {
       // You may use your logging mechanism here.
       Log.e('Error loading configuration', e, stackTrace);
@@ -39,8 +49,13 @@ class _FlutterWindState extends State<FlutterWind> {
   @override
   Widget build(BuildContext context) {
     if (!_isLoaded) {
-      return const Center(child: CircularProgressIndicator());
+      return widget.loadingWidget ??
+          const Center(child: CircularProgressIndicator());
     }
-    return widget.child;
+    return MediaQuery(
+      // Create a new MediaQuery that will rebuild on size changes
+      data: MediaQuery.of(context).copyWith(),
+      child: widget.child,
+    );
   }
 }

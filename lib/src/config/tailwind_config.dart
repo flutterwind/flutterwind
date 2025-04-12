@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutterwind_core/src/config/sizing.dart';
 import 'package:flutterwind_core/src/utils/logger.dart';
 import 'colors.dart';
 import 'text.dart';
 import 'spacing.dart';
 
 class TailwindConfig {
-  static Map<String, double> screens = {};
+  static Map<String, double> screens = defaultBreakpoints;
   static Map<String, Map<int, Color>> colors = defaultTailwindColors;
   static Map<String, double> spacing = defaultSpacingScale;
   static Map<String, List<String>> fontFamily = {};
@@ -21,8 +22,12 @@ class TailwindConfig {
       colors = mergeColors(defaultTailwindColors, userColors);
     }
     if (yamlMap['spacing'] != null) {
-      final userSpacing = _parseFontSize(yamlMap['spacing']);
+      final userSpacing = _parseSpacing(yamlMap['spacing']);
       spacing = mergeSpacing(defaultSpacingScale, userSpacing);
+    }
+    if (yamlMap['screens'] != null) {
+      final userScreens = _parseScreens(yamlMap['screens']);
+      screens = mergeScreens(defaultBreakpoints, userScreens);
     }
     if (yamlMap['fontSize'] != null) {
       final userFontSize = _parseFontSize(yamlMap['fontSize']);
@@ -161,6 +166,11 @@ class TailwindConfig {
   }
 
   static Map<String, double> mergeSpacing(
+      Map<String, double> defaults, Map<String, double> user) {
+    return {...defaults, ...user}; // Properly merges user-defined values
+  }
+
+  static Map<String, double> mergeScreens(
       Map<String, double> defaults, Map<String, double> user) {
     return {...defaults, ...user}; // Properly merges user-defined values
   }

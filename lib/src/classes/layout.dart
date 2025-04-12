@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutterwind_core/src/utils/parser.dart';
 
@@ -7,10 +8,10 @@ class GridItemWrapper extends StatelessWidget {
   final int colSpan;
 
   const GridItemWrapper({
-    Key? key,
+    super.key,
     required this.child,
     this.colSpan = 1,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,15 +23,17 @@ class GridItemWrapper extends StatelessWidget {
 extension ColSpanExtension on Widget {
   Widget colSpan(int span) {
     return GridItemWrapper(
-      child: this,
       colSpan: span,
+      child: this,
     );
   }
 }
 
 extension FlutterWindLayoutExtension on Iterable<Widget> {
   Widget className(String classString) {
-    final classes = classString.split(RegExp(r'\s+'));
+    final classRegex = RegExp(r'(?:(?:\w+:)*\w[\w-]*)');
+    final classes =
+        classRegex.allMatches(classString).map((m) => m.group(0)!).toList();
 
     // Check if this is a grid layout
     if (classes.contains('grid')) {

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutterwind_core/src/classes/animation_presets.dart';
+import 'package:flutterwind_core/src/classes/animations.dart';
+import 'package:flutterwind_core/src/classes/aspect_ratio.dart';
+import 'package:flutterwind_core/src/classes/position.dart';
 import 'package:flutterwind_core/src/classes/sizing.dart';
 import 'package:flutterwind_core/src/classes/spacings.dart';
 import 'package:flutterwind_core/src/classes/colors.dart';
@@ -7,6 +11,8 @@ import 'package:flutterwind_core/src/classes/borders.dart';
 import 'package:flutterwind_core/src/classes/opacity.dart';
 import 'package:flutterwind_core/src/classes/shadows.dart';
 import 'package:flutterwind_core/src/inherited/flutterwind_inherited.dart';
+import 'package:flutterwind_core/src/utils/flutterwind_breakpoints.dart';
+import 'package:flutterwind_core/src/utils/hover_detector.dart';
 import 'package:flutterwind_core/src/utils/logger.dart';
 
 class FlutterWindStyle {
@@ -47,6 +53,19 @@ class FlutterWindStyle {
   Duration? transitionDuration;
   Curve? transitionCurve;
 
+  // Add aspect ratio property
+  double? aspectRatio;
+
+  // Position properties
+  PositionType? position;
+  double? insetTop;
+  double? insetRight;
+  double? insetBottom;
+  double? insetLeft;
+
+  // Animation preset
+  AnimationPreset? animationPreset;
+
   Widget build(Widget child) {
     Widget current = child;
 
@@ -66,6 +85,80 @@ class FlutterWindStyle {
         ),
         child: current,
       );
+    }
+
+    // Apply aspect ratio if specified
+    if (aspectRatio != null) {
+      current = AspectRatio(
+        aspectRatio: aspectRatio!,
+        child: current,
+      );
+    }
+
+    // Apply animation preset if specified
+    if (animationPreset != null) {
+      current = AnimationPresets.applyAnimationWidget(
+        current,
+        animationPreset!,
+        transitionDuration ?? const Duration(milliseconds: 1000),
+        transitionCurve ?? Curves.linear,
+      );
+    }
+
+    // TODO: Add support for positioned using stack
+    // Apply positioning if specified
+    if (position != null) {
+      switch (position) {
+        case PositionType.absolute:
+          current = Positioned(
+            top: insetTop,
+            right: insetRight,
+            bottom: insetBottom,
+            left: insetLeft,
+            child: current,
+          );
+          break;
+        case PositionType.fixed:
+          // In Flutter, fixed position is similar to absolute within a Stack
+          current = Positioned(
+            top: insetTop,
+            right: insetRight,
+            bottom: insetBottom,
+            left: insetLeft,
+            child: current,
+          );
+          break;
+        case PositionType.sticky:
+          // Sticky is not directly supported in Flutter, but we can approximate
+          // with a combination of positioning and scroll listeners in a custom widget
+          // For now, treat it like absolute
+          current = Positioned(
+            top: insetTop,
+            right: insetRight,
+            bottom: insetBottom,
+            left: insetLeft,
+            child: current,
+          );
+          break;
+        case PositionType.relative:
+          if (insetTop != null ||
+              insetRight != null ||
+              insetBottom != null ||
+              insetLeft != null) {
+            current = Padding(
+              padding: EdgeInsets.only(
+                top: insetTop ?? 0,
+                right: insetRight ?? 0,
+                bottom: insetBottom ?? 0,
+                left: insetLeft ?? 0,
+              ),
+              child: current,
+            );
+          }
+          break;
+        default:
+          break;
+      }
     }
 
     // Handle opacity wrapper
@@ -142,33 +235,54 @@ class FlutterWindStyle {
 }
 
 /// Parses and applies Tailwind-like classes to a widget.
-Widget applyFlutterWind(Widget widget, List<String> classes) {
+Widget applyFlutterWind(Widget widget, List<String> classes,
+    [BuildContext? context]) {
   final style = FlutterWindStyle();
   bool isTextWidget = widget is Text;
 
-  for (final cls in classes) {
-    Spacings.apply(cls, style);
-    ColorsClass.apply(cls, style);
-    TypographyClass.apply(cls, style);
-    BordersClass.apply(cls, style);
-    OpacityClass.apply(cls, style);
-    ShadowsClass.apply(cls, style);
-    SizingClass.apply(cls, style);
+  // First, separate hover classes from regular classes
+  final baseClasses = <String>[];
+  final hoverClasses = <String>[];
+  final darkClasses = <String>[];
 
-    // Handle animations
-    if (cls.startsWith('transition')) {
-      style.transitionDuration = const Duration(milliseconds: 300); // Default
+  for (final cls in classes) {
+    if (cls.startsWith('hover:')) {
+      hoverClasses.add(cls.substring(6)); // Remove 'hover:' prefix
+    } else if (cls.startsWith('dark:')) {
+      darkClasses.add(cls.substring(5)); // Remove 'dark:' prefix
+    } else {
+      baseClasses.add(cls);
     }
-    if (cls.startsWith('duration-')) {
-      final match = RegExp(r'duration-(\d+)').firstMatch(cls);
-      if (match != null) {
-        style.transitionDuration =
-            Duration(milliseconds: int.parse(match.group(1)!));
-      }
+  }
+
+  // Resolve responsive classes based on current screen size
+  final resolvedBaseClasses = context != null
+      ? resolveFlutterWindResponsiveClasses(baseClasses, context)
+      : baseClasses;
+
+  // Also resolve responsive classes for hover states
+  final resolvedHoverClasses = context != null && hoverClasses.isNotEmpty
+      ? resolveFlutterWindResponsiveClasses(hoverClasses, context)
+      : hoverClasses;
+
+  final resolvedDarkClasses = context != null && darkClasses.isNotEmpty
+      ? resolveFlutterWindResponsiveClasses(darkClasses, context)
+      : darkClasses;
+
+  // Determine if dark mode is active
+  final isDarkMode =
+      context != null && Theme.of(context).brightness == Brightness.dark;
+
+  // Apply base styles
+  for (final cls in resolvedBaseClasses) {
+    applyClassToStyle(cls, style);
+  }
+
+  // Apply dark mode styles if in dark mode
+  if (isDarkMode && resolvedDarkClasses.isNotEmpty) {
+    for (final cls in resolvedDarkClasses) {
+      applyClassToStyle(cls, style);
     }
-    if (cls == 'ease-in') style.transitionCurve = Curves.easeIn;
-    if (cls == 'ease-out') style.transitionCurve = Curves.easeOut;
-    if (cls == 'ease-in-out') style.transitionCurve = Curves.easeInOut;
   }
 
   Widget builtWidget;
@@ -195,5 +309,35 @@ Widget applyFlutterWind(Widget widget, List<String> classes) {
   } else {
     builtWidget = style.build(widget);
   }
+
+  // If there are hover classes, wrap with hover detector
+  if (resolvedHoverClasses.isNotEmpty && context != null) {
+    // For hover, we need to pass both base classes and dark classes
+    final baseClassesWithDark = isDarkMode && resolvedDarkClasses.isNotEmpty
+        ? [...baseClasses, ...darkClasses]
+        : baseClasses;
+    return HoverDetector(
+      baseClasses: baseClassesWithDark,
+      hoverClasses: hoverClasses,
+      context: context,
+      child: widget,
+    );
+  }
+
   return builtWidget;
+}
+
+// Helper function to apply a single class to a style
+void applyClassToStyle(String cls, FlutterWindStyle style) {
+  Spacings.apply(cls, style);
+  ColorsClass.apply(cls, style);
+  TypographyClass.apply(cls, style);
+  BordersClass.apply(cls, style);
+  OpacityClass.apply(cls, style);
+  ShadowsClass.apply(cls, style);
+  SizingClass.apply(cls, style);
+  AspectRatioClass.apply(cls, style);
+  AnimationsClass.apply(cls, style);
+  PositionClass.apply(cls, style);
+  AnimationPresets.apply(cls, style);
 }
