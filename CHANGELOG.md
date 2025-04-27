@@ -17,3 +17,8 @@
 * Added support for Grid Layout.
 * Added support for Aspect Ratio.
 * Added support for Positioning.
+
+## 0.0.4
+* Bug Fixes
+* Added support for `Filter` and `Effects` presets.
+* Added support for `Transform` presets.
