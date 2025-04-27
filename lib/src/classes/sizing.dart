@@ -47,6 +47,22 @@ class SizingClass {
     } else if (cls.startsWith('size-')) {
       final value = cls.substring(5);
       _applySize(value, style);
+    } else if (cls.startsWith('overflow-')) {
+      if(cls == 'overflow-scroll' || cls == 'overflow-auto' || cls == 'overflow-x-scroll' || cls == 'overflow-y-scroll') {
+        style.overFlowScroll = true;
+      }
+
+      if(cls == 'overflow-x-scroll' || cls == 'overflow-x-auto') {
+        style.overFlowScrollAxis = Axis.horizontal;
+      }
+
+      if(cls == 'overflow-y-scroll' || cls == 'overflow-y-auto') {
+        style.overFlowScrollAxis = Axis.vertical;
+      }
+
+      if(cls == 'overflow-hidden') {
+        style.overFlowHidden = true;
+      }
     }
   }
 
@@ -102,7 +118,10 @@ class SizingClass {
     else if (containerSizes.containsKey(value)) {
       style.width = containerSizes[value];
     } else if (value == 'auto') {
+      // Set width to null to allow the widget to size itself based on content
+      // This mimics Tailwind CSS's w-auto behavior
       style.width = null;
+      style.widthFactor = null;
     }
   }
 
@@ -132,7 +151,10 @@ class SizingClass {
     } else if (containerSizes.containsKey(value)) {
       style.height = containerSizes[value];
     } else if (value == 'auto') {
+      // Set height to null to allow the widget to size itself based on content
+      // This mimics Tailwind CSS's h-auto behavior
       style.height = null;
+      style.heightFactor = null;
     }
   }
 

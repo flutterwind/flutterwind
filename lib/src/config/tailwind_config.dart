@@ -14,6 +14,10 @@ class TailwindConfig {
   static Map<String, FontWeight> fontWeight = defaultFontWeight;
   static Map<String, double> borderRadius = {};
   static Map<String, List<BoxShadow>> boxShadow = {};
+  static Map<String, double> blur = {};
+  static Map<String, double> brightness = {};
+  static Map<String, double> contrast = {};
+  static Map<String, BoxShadow> dropShadow = {};
 
   static void updateFromYaml(dynamic yamlMap) {
     if (yamlMap == null) return;
@@ -42,6 +46,20 @@ class TailwindConfig {
     fontFamily = _parseFontFamily(yamlMap['fontFamily']);
     borderRadius = _parseBorderRadius(yamlMap['borderRadius']);
     boxShadow = _parseBoxShadows(yamlMap['boxShadow']); // Renamed method
+    
+    // Parse filter configurations if provided
+    if (yamlMap['blur'] != null) {
+      blur = _parseBlur(yamlMap['blur']);
+    }
+    if (yamlMap['brightness'] != null) {
+      brightness = _parseBrightness(yamlMap['brightness']);
+    }
+    if (yamlMap['contrast'] != null) {
+      contrast = _parseContrast(yamlMap['contrast']);
+    }
+    if (yamlMap['dropShadow'] != null) {
+      dropShadow = _parseDropShadow(yamlMap['dropShadow']);
+    }
   }
 
   static Map<String, double> _parseScreens(dynamic data) {
@@ -105,6 +123,30 @@ class TailwindConfig {
     if (data == null) return {};
     return Map<String, List<BoxShadow>>.from(data.map((key, value) => MapEntry(
         key, List<BoxShadow>.from(value.map((v) => _createBoxShadow(v))))));
+  }
+  
+  static Map<String, double> _parseBlur(dynamic data) {
+    if (data == null) return {};
+    return Map<String, double>.from(
+        data.map((key, value) => MapEntry(key, (value as num).toDouble())));
+  }
+
+  static Map<String, double> _parseBrightness(dynamic data) {
+    if (data == null) return {};
+    return Map<String, double>.from(
+        data.map((key, value) => MapEntry(key, (value as num).toDouble())));
+  }
+
+  static Map<String, double> _parseContrast(dynamic data) {
+    if (data == null) return {};
+    return Map<String, double>.from(
+        data.map((key, value) => MapEntry(key, (value as num).toDouble())));
+  }
+
+  static Map<String, BoxShadow> _parseDropShadow(dynamic data) {
+    if (data == null) return {};
+    return Map<String, BoxShadow>.from(
+        data.map((key, value) => MapEntry(key, _createBoxShadow(value))));
   }
 
   static Color _parseColor(String hexColor) {
