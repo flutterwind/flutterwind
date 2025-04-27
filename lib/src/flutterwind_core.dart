@@ -6,8 +6,6 @@ import 'package:flutterwind_core/src/utils/parser.dart';
 ///   Text("Hello").className("text-lg font-bold bg-[#ff0000] p-2")
 extension FlutterWindExtension on Widget {
   Widget className(String classString) {
-    // final classes = classString.split(RegExp(r'\s+'));
-    // return applyFlutterWind(this, classes);
     return Builder(
       builder: (context) {
         // This will rebuild whenever MediaQuery changes (screen resize)

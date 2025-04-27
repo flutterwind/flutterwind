@@ -31,10 +31,10 @@ extension ColSpanExtension on Widget {
 
 extension FlutterWindLayoutExtension on Iterable<Widget> {
   Widget className(String classString) {
-    final classRegex = RegExp(r'(?:(?:\w+:)*\w[\w-]*)');
+    final classRegex = RegExp(r'(?:\w+:[^\s]+|\w+-\[[^\]]*\]|\w+[\w-]*|\[[^\]]*\])');
     final classes =
         classRegex.allMatches(classString).map((m) => m.group(0)!).toList();
-
+        
     // Check if this is a grid layout
     if (classes.contains('grid')) {
       return _buildGridLayout(classes);
