@@ -1,0 +1,2 @@
+/Users/yashkumar/Documents/Projects/flutterwind/example/android/app/.cxx/RelWithDebInfo/xe42635l/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/Users/yashkumar/Documents/Projects/flutterwind/example/android/app/.cxx/RelWithDebInfo/xe42635l/arm64-v8a/CMakeFiles/edit_cache.dir

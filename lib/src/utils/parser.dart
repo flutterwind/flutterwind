@@ -13,10 +13,8 @@ import 'package:flutterwind_core/src/classes/typography.dart';
 import 'package:flutterwind_core/src/classes/borders.dart';
 import 'package:flutterwind_core/src/classes/opacity.dart';
 import 'package:flutterwind_core/src/classes/shadows.dart';
-import 'package:flutterwind_core/src/inherited/flutterwind_inherited.dart';
 import 'package:flutterwind_core/src/utils/flutterwind_breakpoints.dart';
 import 'package:flutterwind_core/src/utils/hover_detector.dart';
-import 'package:flutterwind_core/src/utils/logger.dart';
 
 class FlutterWindStyle {
   EdgeInsets? padding;

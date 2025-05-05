@@ -1,10 +1,10 @@
 name: flutterwind_core
 description: "Flutter utility-first universal design system - powered by Tailwind CSS"
-version: 0.0.4
+version: 0.0.5
 repository: https://github.com/flutterwind/flutterwind/tree/main
 issue_tracker: https://github.com/flutterwind/flutterwind/issues
-homepage: https://flutterwind.dev
-documentation: https://flutterwind.dev/getting-started
+homepage: https://flutterwind.brighthustle.in
+documentation: https://flutterwind.brighthustle.in/getting-started
 topics: [tailwind, flutter, design-system]
 funding: [https://github.com/sponsors/Flutterwind]
 

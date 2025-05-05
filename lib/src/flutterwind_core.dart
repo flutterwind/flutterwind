@@ -17,5 +17,3 @@ extension FlutterWindExtension on Widget {
     );
   }
 }
-
-

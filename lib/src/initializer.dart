@@ -1,16 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:flutterwind_core/src/config/config_loader.dart';
 import 'package:flutterwind_core/src/utils/logger.dart';
+import 'package:flutterwind_core/src/utils/developer_tools.dart';
 
 /// FlutterWindInitializer is a widget that loads the Tailwind configuration
 /// asynchronously. Wrap your app with this widget to auto-load configuration.
 class FlutterWind extends StatefulWidget {
-  final Widget child;
+  final Widget? child;
   final Widget? loadingWidget;
+  final bool showDevTools;
+  final Color? devToolsBackgroundColor;
+  final Color? devToolsTextColor;
+  final bool showFps;
+  final bool showMemoryUsage;
+  final bool showBuildTimes;
+  final bool showPlatformInfo;
+  final bool showScreenInfo;
+  final bool showThemeInfo;
+  final bool devToolsDraggable;
+  final ThemeData? theme;
+  final ThemeData? darkTheme;
+  final ThemeMode? themeMode;
+  final String? title;
+  final Color? color;
+  final Locale? locale;
+  final Iterable<LocalizationsDelegate<dynamic>>? localizationsDelegates;
+  final Iterable<Locale>? supportedLocales;
+  final bool debugShowCheckedModeBanner;
+  final bool debugShowMaterialGrid;
+  final bool useInheritedMediaQuery;
+  final Map<ShortcutActivator, Intent>? shortcuts;
+  final Map<Type, Action<Intent>>? actions;
+  final String? restorationScopeId;
+  final ScrollBehavior? scrollBehavior;
+  final Widget? home;
+
   const FlutterWind({
     super.key,
-    required this.child,
+    this.child,
     this.loadingWidget,
+    this.showDevTools = false,
+    this.devToolsBackgroundColor,
+    this.devToolsTextColor,
+    this.showFps = true,
+    this.showMemoryUsage = true,
+    this.showBuildTimes = true,
+    this.showPlatformInfo = true,
+    this.showScreenInfo = true,
+    this.showThemeInfo = true,
+    this.devToolsDraggable = true,
+    this.theme,
+    this.darkTheme,
+    this.themeMode,
+    this.title,
+    this.color,
+    this.locale,
+    this.localizationsDelegates,
+    this.supportedLocales,
+    this.debugShowCheckedModeBanner = false,
+    this.debugShowMaterialGrid = false,
+    this.useInheritedMediaQuery = false,
+    this.shortcuts,
+    this.actions,
+    this.restorationScopeId,
+    this.scrollBehavior,
+    this.home,
   });
 
   @override
@@ -49,10 +103,46 @@ class _FlutterWindState extends State<FlutterWind> with WidgetsBindingObserver {
       return widget.loadingWidget ??
           const Center(child: CircularProgressIndicator());
     }
-    return MediaQuery(
-      // Create a new MediaQuery that will rebuild on size changes
-      data: MediaQuery.of(context).copyWith(),
-      child: widget.child,
+
+    Widget child = widget.child ?? widget.home ?? const SizedBox.shrink();
+
+    if (widget.showDevTools) {
+      child = DeveloperTools(
+        backgroundColor:
+            widget.devToolsBackgroundColor ?? const Color(0x88000000),
+        textColor: widget.devToolsTextColor ?? Colors.white,
+        showFps: widget.showFps,
+        showMemoryUsage: widget.showMemoryUsage,
+        showBuildTimes: widget.showBuildTimes,
+        showPlatformInfo: widget.showPlatformInfo,
+        showScreenInfo: widget.showScreenInfo,
+        showThemeInfo: widget.showThemeInfo,
+        draggable: widget.devToolsDraggable,
+        child: child,
+      );
+    }
+
+    return MaterialApp(
+      title: widget.title ?? '',
+      theme: widget.theme,
+      darkTheme: widget.darkTheme,
+      themeMode: widget.themeMode,
+      color: widget.color,
+      locale: widget.locale,
+      localizationsDelegates: widget.localizationsDelegates,
+      supportedLocales: widget.supportedLocales ?? const [Locale('en', 'US')],
+      debugShowCheckedModeBanner: widget.debugShowCheckedModeBanner,
+      debugShowMaterialGrid: widget.debugShowMaterialGrid,
+      useInheritedMediaQuery: widget.useInheritedMediaQuery,
+      shortcuts: widget.shortcuts,
+      actions: widget.actions,
+      restorationScopeId: widget.restorationScopeId,
+      scrollBehavior: widget.scrollBehavior,
+      home: MediaQuery(
+        // Create a new MediaQuery that will rebuild on size changes
+        data: MediaQuery.of(context).copyWith(),
+        child: child,
+      ),
     );
   }
 }
