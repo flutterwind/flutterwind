@@ -13,6 +13,13 @@ class TailwindConfig {
   static Map<String, double> fontSize = defaultFontSize;
   static Map<String, FontWeight> fontWeight = defaultFontWeight;
   static Map<String, double> borderRadius = {};
+  static Map<String, double> borderWidth = {
+    '0': 0.0,
+    '1': 1.0,
+    '2': 2.0,
+    '4': 4.0,
+    '8': 8.0,
+  };
   static Map<String, List<BoxShadow>> boxShadow = {};
   static Map<String, double> blur = {};
   static Map<String, double> brightness = {};
@@ -41,12 +48,16 @@ class TailwindConfig {
       final userFontWeight = _parseFontWeight(yamlMap['fontSize']);
       fontWeight = mergeFontWeight(defaultFontWeight, userFontWeight);
     }
+    if (yamlMap['borderWidth'] != null) {
+      final userBorderWidth = _parseBorderWidth(yamlMap['borderWidth']);
+      borderWidth = {...borderWidth, ...userBorderWidth};
+    }
 
     screens = _parseScreens(yamlMap['screens']);
     fontFamily = _parseFontFamily(yamlMap['fontFamily']);
     borderRadius = _parseBorderRadius(yamlMap['borderRadius']);
     boxShadow = _parseBoxShadows(yamlMap['boxShadow']); // Renamed method
-    
+
     // Parse filter configurations if provided
     if (yamlMap['blur'] != null) {
       blur = _parseBlur(yamlMap['blur']);
@@ -124,7 +135,7 @@ class TailwindConfig {
     return Map<String, List<BoxShadow>>.from(data.map((key, value) => MapEntry(
         key, List<BoxShadow>.from(value.map((v) => _createBoxShadow(v))))));
   }
-  
+
   static Map<String, double> _parseBlur(dynamic data) {
     if (data == null) return {};
     return Map<String, double>.from(
@@ -147,6 +158,12 @@ class TailwindConfig {
     if (data == null) return {};
     return Map<String, BoxShadow>.from(
         data.map((key, value) => MapEntry(key, _createBoxShadow(value))));
+  }
+
+  static Map<String, double> _parseBorderWidth(dynamic data) {
+    if (data == null) return {};
+    return Map<String, double>.from(
+        data.map((key, value) => MapEntry(key, (value as num).toDouble())));
   }
 
   static Color _parseColor(String hexColor) {

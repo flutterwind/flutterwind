@@ -1,6 +1,17 @@
-import 'package:example/home.dart';
+import 'package:example/filter_effects_example.dart';
+import 'package:example/input_examples.dart';
+import 'package:example/interactive_transform_demo.dart';
+import 'package:example/transform_examples.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterwind_core/flutterwind.dart';
+import 'typography_examples.dart';
+import 'layout_examples.dart';
+import 'animation_examples.dart';
+import 'transition_examples.dart';
+import 'accessibility_examples.dart';
+import 'performance_examples.dart';
+import 'advanced_effects_examples.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Create a global ValueNotifier for developer tools state
@@ -97,10 +108,109 @@ class _MyAppState extends State<MyApp> {
               brightness: Brightness.dark,
             ),
             themeMode: ThemeMode.light,
-            home: const HomePage(),
+            home: const ExamplesHome(),
           ),
         );
       },
     );
   }
 }
+
+class ExamplesHome extends StatelessWidget {
+  const ExamplesHome({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('FlutterWind Examples'),
+      ),
+      body: ListView.builder(
+        itemCount: _examples.length,
+        itemBuilder: (context, index) {
+          final example = _examples[index];
+          return ListTile(
+            title: Text(example.title),
+            subtitle: Text(example.description),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => example.page,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class Example {
+  final String title;
+  final String description;
+  final Widget page;
+
+  const Example({
+    required this.title,
+    required this.description,
+    required this.page,
+  });
+}
+
+final List<Example> _examples = [
+  const Example(
+    title: 'Typography',
+    description: 'Text styling, effects, and formatting examples',
+    page: TypographyExamples(),
+  ),
+  const Example(
+    title: 'Layout',
+    description: 'Grid, flex, and spacing examples',
+    page: LayoutExamples(),
+  ),
+  const Example(
+    title: 'Animations',
+    description: 'Basic and advanced animation examples',
+    page: AnimationExamples(),
+  ),
+  const Example(
+    title: 'Transitions',
+    description: 'Page and widget transition examples',
+    page: TransitionExamples(),
+  ),
+  const Example(
+    title: 'Input',
+    description: 'Semantics and accessibility features',
+    page: InputExamples(),
+  ),
+  const Example(
+    title: 'Accessibility',
+    description: 'Semantics and accessibility features',
+    page: AccessibilityExamples(),
+  ),
+  const Example(
+    title: 'Performance',
+    description: 'Optimization and performance features',
+    page: PerformanceExamples(),
+  ),
+  const Example(
+    title: 'Advanced Effects',
+    description: 'Filters, blend modes, and shaders',
+    page: AdvancedEffectsExamples(),
+  ),
+  const Example(
+    title: 'Interactive Transform',
+    description: 'Interactive transform examples',
+    page: InteractiveTransformDemo(),
+  ),
+  const Example(
+    title: 'Filter Effects',
+    description: 'Filters, blend modes, and shaders',
+    page: FilterEffectsDemo(),
+  ),
+  const Example(
+    title: 'Transform Examples',
+    description: 'Transform examples',
+    page: TransformExamplesPage(),
+  ),
+];

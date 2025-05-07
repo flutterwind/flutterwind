@@ -1,19 +1,18 @@
-import 'package:flutter/material.dart';
 import 'package:flutterwind_core/src/utils/parser.dart';
 
 class AspectRatioClass {
   // Common aspect ratios
   static const Map<String, double> aspectRatioScale = {
-    'square': 1.0,        // 1:1
-    'video': 16 / 9,      // 16:9
-    '4/3': 4 / 3,         // 4:3
-    '16/9': 16 / 9,       // 16:9
-    '21/9': 21 / 9,       // 21:9 (ultrawide)
-    '1/1': 1.0,           // 1:1 (square)
-    '2/1': 2.0,           // 2:1
-    '1/2': 0.5,           // 1:2
-    '3/2': 1.5,           // 3:2
-    '2/3': 2 / 3,         // 2:3
+    'square': 1.0, // 1:1
+    'video': 16 / 9, // 16:9
+    '4/3': 4 / 3, // 4:3
+    '16/9': 16 / 9, // 16:9
+    '21/9': 21 / 9, // 21:9 (ultrawide)
+    '1/1': 1.0, // 1:1 (square)
+    '2/1': 2.0, // 2:1
+    '1/2': 0.5, // 1:2
+    '3/2': 1.5, // 3:2
+    '2/3': 2 / 3, // 2:3
   };
 
   static void apply(String cls, FlutterWindStyle style) {
@@ -39,7 +38,7 @@ class AspectRatioClass {
     // Handle arbitrary values: aspect-[16/9]
     if (value.startsWith('[') && value.endsWith(']')) {
       final inner = value.substring(1, value.length - 1);
-      
+
       // Handle fractions like 16/9
       if (inner.contains('/')) {
         final parts = inner.split('/');
@@ -52,7 +51,7 @@ class AspectRatioClass {
           }
         }
       }
-      
+
       // Handle direct decimal values
       double? ratio = double.tryParse(inner);
       if (ratio != null) {

@@ -47,3 +47,40 @@
   * Enhanced visual hierarchy with consistent styling
 * Added ability to toggle developer tools in release builds with secure gesture control
 
+
+## 0.0.6
+* Added support for advanced styling properties:
+  * Background properties (fit, alignment, blend mode, repeat, clip, opacity)
+  * Image and backdrop filters
+  * Color filters for brightness/contrast
+  * Drop shadow effects
+  * Transform operations with alignment control
+  * Percentage-based translations
+  * Gradient support with colors and stops
+* Enhanced overflow handling:
+  * Added scroll overflow with axis control
+  * Added hidden overflow option
+  * Implemented bounce scroll physics
+* Improved sizing capabilities:
+  * Added fixed width/height support
+  * Added relative width/height factors
+  * Implemented aspect ratio control
+* Added accessibility features:
+  * Semantic labels
+  * Focusable controls
+* Implemented inset shadow support
+* Added ring properties for focus outlines
+* Enhanced text styling:
+  * Added text indent
+  * Added letter and word spacing
+  * Added line height control
+  * Added text overflow handling
+  * Added text wrapping control
+  * Added text selection behavior
+  * Added text direction support
+* Improved positioning system:
+  * Added support for absolute, fixed, sticky positioning
+  * Implemented inset controls (top, right, bottom, left)
+
+
+

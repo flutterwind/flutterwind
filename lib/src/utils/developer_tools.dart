@@ -105,6 +105,7 @@ class _DeveloperToolsState extends State<DeveloperTools>
   void _setupErrorCapture() {
     // Capture Flutter errors
     FlutterError.onError = (FlutterErrorDetails details) {
+      print(details.exceptionAsString());
       addLog(details.exception.toString(), level: 'error');
       if (details.stack != null) {
         addLog(details.stack.toString(), level: 'error');

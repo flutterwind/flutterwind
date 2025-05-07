@@ -41,9 +41,13 @@ class ColorsClass {
   static void apply(String cls, FlutterWindStyle style) {
     if (cls.startsWith('bg-')) {
       final value = cls.substring(3);
-      Color? color = _parseColor(value);
-      if (color != null) {
-        style.backgroundColor = color;
+      if (value.startsWith('gradient-to-')) {
+        _applyGradient(value.substring(11), style);
+      } else {
+        Color? color = _parseColor(value);
+        if (color != null) {
+          style.backgroundColor = color;
+        }
       }
     } else if (cls.startsWith('text-')) {
       final value = cls.substring(5);
@@ -51,6 +55,95 @@ class ColorsClass {
       if (color != null) {
         style.textColor = color;
       }
+    } else if (cls.startsWith('from-')) {
+      _addGradientColor(cls.substring(5), style, isFrom: true);
+    } else if (cls.startsWith('via-')) {
+      _addGradientColor(cls.substring(4), style, isVia: true);
+    } else if (cls.startsWith('to-')) {
+      _addGradientColor(cls.substring(3), style, isTo: true);
+    }
+  }
+
+  static void _applyGradient(String direction, FlutterWindStyle style) {
+    final colors = <Color>[];
+    final stops = <double>[];
+
+    if (style.gradientColors != null) {
+      colors.addAll(style.gradientColors!);
+    }
+    if (style.gradientStops != null) {
+      stops.addAll(style.gradientStops!);
+    }
+
+    if (colors.isEmpty) return;
+
+    Alignment begin;
+    Alignment end;
+
+    switch (direction) {
+      case 'r':
+        begin = Alignment.centerLeft;
+        end = Alignment.centerRight;
+        break;
+      case 'l':
+        begin = Alignment.centerRight;
+        end = Alignment.centerLeft;
+        break;
+      case 't':
+        begin = Alignment.bottomCenter;
+        end = Alignment.topCenter;
+        break;
+      case 'b':
+        begin = Alignment.topCenter;
+        end = Alignment.bottomCenter;
+        break;
+      case 'tr':
+        begin = Alignment.bottomLeft;
+        end = Alignment.topRight;
+        break;
+      case 'tl':
+        begin = Alignment.bottomRight;
+        end = Alignment.topLeft;
+        break;
+      case 'br':
+        begin = Alignment.topLeft;
+        end = Alignment.bottomRight;
+        break;
+      case 'bl':
+        begin = Alignment.topRight;
+        end = Alignment.bottomLeft;
+        break;
+      default:
+        begin = Alignment.centerLeft;
+        end = Alignment.centerRight;
+    }
+
+    style.gradient = LinearGradient(
+      begin: begin,
+      end: end,
+      colors: colors,
+      stops: stops.isNotEmpty ? stops : null,
+    );
+  }
+
+  static void _addGradientColor(String value, FlutterWindStyle style,
+      {bool isFrom = false, bool isVia = false, bool isTo = false}) {
+    Color? color = _parseColor(value);
+    if (color == null) return;
+
+    style.gradientColors ??= [];
+    style.gradientStops ??= [];
+
+    if (isFrom) {
+      style.gradientColors!.insert(0, color);
+      style.gradientStops!.insert(0, 0.0);
+    } else if (isVia) {
+      final middleIndex = style.gradientColors!.length ~/ 2;
+      style.gradientColors!.insert(middleIndex, color);
+      style.gradientStops!.insert(middleIndex, 0.5);
+    } else if (isTo) {
+      style.gradientColors!.add(color);
+      style.gradientStops!.add(1.0);
     }
   }
 

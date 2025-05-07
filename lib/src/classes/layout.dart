@@ -6,11 +6,13 @@ import 'package:flutterwind_core/src/utils/parser.dart';
 class GridItemWrapper extends StatelessWidget {
   final Widget child;
   final int colSpan;
+  final int rowSpan;
 
   const GridItemWrapper({
     super.key,
     required this.child,
     this.colSpan = 1,
+    this.rowSpan = 1,
   });
 
   @override
@@ -19,11 +21,18 @@ class GridItemWrapper extends StatelessWidget {
   }
 }
 
-/// Extension to add colSpan to any widget for grid layouts
-extension ColSpanExtension on Widget {
+/// Extension to add colSpan and rowSpan to any widget for grid layouts
+extension GridSpanExtension on Widget {
   Widget colSpan(int span) {
     return GridItemWrapper(
       colSpan: span,
+      child: this,
+    );
+  }
+
+  Widget rowSpan(int span) {
+    return GridItemWrapper(
+      rowSpan: span,
       child: this,
     );
   }
@@ -31,10 +40,11 @@ extension ColSpanExtension on Widget {
 
 extension FlutterWindLayoutExtension on Iterable<Widget> {
   Widget className(String classString) {
-    final classRegex = RegExp(r'(?:\w+:[^\s]+|\w+-\[[^\]]*\]|\w+[\w-]*|\[[^\]]*\])');
+    final classRegex =
+        RegExp(r'(?:\w+:[^\s]+|\w+-\[[^\]]*\]|\w+[\w-]*|\[[^\]]*\])');
     final classes =
         classRegex.allMatches(classString).map((m) => m.group(0)!).toList();
-        
+
     // Check if this is a grid layout
     if (classes.contains('grid')) {
       return _buildGridLayout(classes);
@@ -47,6 +57,12 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
   Widget _buildFlexLayout(List<String> classes) {
     // Process flex-related classes
     bool isColumn = classes.contains('flex-col');
+    bool isWrap = classes.contains('flex-wrap');
+    bool isReverse = classes.contains('flex-row-reverse') ||
+        classes.contains('flex-col-reverse');
+    bool isGrow = classes.contains('flex-grow');
+    bool isShrink = classes.contains('flex-shrink');
+    bool isBasis = classes.contains('flex-basis');
 
     // If flex is specified without direction, default to row
     if (classes.contains('flex') &&
@@ -60,6 +76,11 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
     CrossAxisAlignment crossAxisAlignment =
         isColumn ? CrossAxisAlignment.stretch : CrossAxisAlignment.center;
     double? gap;
+    double? spaceX;
+    double? spaceY;
+    double? flexGrow;
+    double? flexShrink;
+    double? flexBasis;
 
     for (final c in classes) {
       if (c.startsWith('justify-')) {
@@ -79,6 +100,9 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
             break;
           case 'end':
             mainAxisAlignment = MainAxisAlignment.end;
+            break;
+          case 'start':
+            mainAxisAlignment = MainAxisAlignment.start;
             break;
           default:
             mainAxisAlignment = MainAxisAlignment.start;
@@ -106,9 +130,46 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
                 ? CrossAxisAlignment.stretch
                 : CrossAxisAlignment.center;
         }
+      } else if (c.startsWith('content-')) {
+        final value = c.substring('content-'.length);
+        switch (value) {
+          case 'center':
+            mainAxisAlignment = MainAxisAlignment.center;
+            break;
+          case 'between':
+            mainAxisAlignment = MainAxisAlignment.spaceBetween;
+            break;
+          case 'around':
+            mainAxisAlignment = MainAxisAlignment.spaceAround;
+            break;
+          case 'evenly':
+            mainAxisAlignment = MainAxisAlignment.spaceEvenly;
+            break;
+          case 'start':
+            mainAxisAlignment = MainAxisAlignment.start;
+            break;
+          case 'end':
+            mainAxisAlignment = MainAxisAlignment.end;
+            break;
+        }
       } else if (c.startsWith('gap-')) {
         final value = c.substring('gap-'.length);
         gap = _parseSpacing(value);
+      } else if (c.startsWith('space-x-')) {
+        final value = c.substring('space-x-'.length);
+        spaceX = _parseSpacing(value);
+      } else if (c.startsWith('space-y-')) {
+        final value = c.substring('space-y-'.length);
+        spaceY = _parseSpacing(value);
+      } else if (c.startsWith('grow-')) {
+        final value = c.substring('grow-'.length);
+        flexGrow = _parseFlexValue(value);
+      } else if (c.startsWith('shrink-')) {
+        final value = c.substring('shrink-'.length);
+        flexShrink = _parseFlexValue(value);
+      } else if (c.startsWith('basis-')) {
+        final value = c.substring('basis-'.length);
+        flexBasis = _parseSpacing(value);
       }
     }
 
@@ -117,10 +178,24 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
 
     // Add widgets with appropriate spacing
     for (int i = 0; i < widgets.length; i++) {
-      spacedChildren.add(widgets[i]);
-      if (i < widgets.length - 1 && gap != null) {
-        spacedChildren
-            .add(isColumn ? SizedBox(height: gap) : SizedBox(width: gap));
+      Widget child = widgets[i];
+
+      // Apply flex properties if specified
+      if (flexGrow != null || flexShrink != null || flexBasis != null) {
+        child = Expanded(
+          flex: flexGrow?.toInt() ?? 1,
+          child: child,
+        );
+      }
+
+      spacedChildren.add(child);
+
+      if (i < widgets.length - 1) {
+        if (isColumn) {
+          spacedChildren.add(SizedBox(height: spaceY ?? gap ?? 0));
+        } else {
+          spacedChildren.add(SizedBox(width: spaceX ?? gap ?? 0));
+        }
       }
     }
 
@@ -139,6 +214,34 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
             children: spacedChildren,
           );
 
+    // Apply wrap if specified
+    if (isWrap) {
+      flexWidget = Wrap(
+        direction: isColumn ? Axis.vertical : Axis.horizontal,
+        alignment: _convertToWrapAlignment(mainAxisAlignment),
+        crossAxisAlignment:
+            isColumn ? WrapCrossAlignment.start : WrapCrossAlignment.center,
+        children: spacedChildren,
+      );
+    }
+
+    // Apply reverse if specified
+    if (isReverse) {
+      flexWidget = isColumn
+          ? Column(
+              mainAxisAlignment: mainAxisAlignment,
+              crossAxisAlignment: crossAxisAlignment,
+              mainAxisSize: MainAxisSize.min,
+              children: spacedChildren.reversed.toList(),
+            )
+          : Row(
+              mainAxisAlignment: mainAxisAlignment,
+              crossAxisAlignment: crossAxisAlignment,
+              mainAxisSize: MainAxisSize.min,
+              children: spacedChildren.reversed.toList(),
+            );
+    }
+
     // Apply other classes for styling (background, padding, etc.)
     return applyFlutterWind(flexWidget, classes);
   }
@@ -148,6 +251,9 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
     // Parse grid properties
     int gridColumns = 2; // Default 2 columns
     double gridGap = 8.0; // Default gap
+    bool isAutoRows = classes.contains('auto-rows');
+    bool isAutoCols = classes.contains('auto-cols');
+    String? autoFlow = null;
 
     for (final cls in classes) {
       if (cls.startsWith('grid-cols-')) {
@@ -158,6 +264,8 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
       } else if (cls.startsWith('gap-')) {
         final value = cls.substring('gap-'.length);
         gridGap = _parseSpacing(value) ?? 8.0;
+      } else if (cls.startsWith('auto-flow-')) {
+        autoFlow = cls.substring('auto-flow-'.length);
       }
     }
 
@@ -292,5 +400,31 @@ double? _parseSpacing(String value) {
     return double.tryParse(inner);
   } else {
     return spacingScale[value];
+  }
+}
+
+double? _parseFlexValue(String value) {
+  if (value.startsWith('[') && value.endsWith(']')) {
+    final inner = value.substring(1, value.length - 1);
+    return double.tryParse(inner);
+  } else {
+    return double.tryParse(value);
+  }
+}
+
+WrapAlignment _convertToWrapAlignment(MainAxisAlignment alignment) {
+  switch (alignment) {
+    case MainAxisAlignment.start:
+      return WrapAlignment.start;
+    case MainAxisAlignment.end:
+      return WrapAlignment.end;
+    case MainAxisAlignment.center:
+      return WrapAlignment.center;
+    case MainAxisAlignment.spaceBetween:
+      return WrapAlignment.spaceBetween;
+    case MainAxisAlignment.spaceAround:
+      return WrapAlignment.spaceAround;
+    case MainAxisAlignment.spaceEvenly:
+      return WrapAlignment.spaceEvenly;
   }
 }

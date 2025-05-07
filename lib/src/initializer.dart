@@ -14,10 +14,6 @@ class FlutterWind extends StatefulWidget {
   final bool showFps;
   final bool showMemoryUsage;
   final bool showBuildTimes;
-  final bool showPlatformInfo;
-  final bool showScreenInfo;
-  final bool showThemeInfo;
-  final bool devToolsDraggable;
   final ThemeData? theme;
   final ThemeData? darkTheme;
   final ThemeMode? themeMode;
@@ -45,10 +41,6 @@ class FlutterWind extends StatefulWidget {
     this.showFps = true,
     this.showMemoryUsage = true,
     this.showBuildTimes = true,
-    this.showPlatformInfo = true,
-    this.showScreenInfo = true,
-    this.showThemeInfo = true,
-    this.devToolsDraggable = true,
     this.theme,
     this.darkTheme,
     this.themeMode,
@@ -108,17 +100,13 @@ class _FlutterWindState extends State<FlutterWind> with WidgetsBindingObserver {
 
     if (widget.showDevTools) {
       child = DeveloperTools(
+        child: child,
         backgroundColor:
             widget.devToolsBackgroundColor ?? const Color(0x88000000),
         textColor: widget.devToolsTextColor ?? Colors.white,
         showFps: widget.showFps,
         showMemoryUsage: widget.showMemoryUsage,
         showBuildTimes: widget.showBuildTimes,
-        showPlatformInfo: widget.showPlatformInfo,
-        showScreenInfo: widget.showScreenInfo,
-        showThemeInfo: widget.showThemeInfo,
-        draggable: widget.devToolsDraggable,
-        child: child,
       );
     }
 
