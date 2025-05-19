@@ -30,6 +30,9 @@ class FlutterWind extends StatefulWidget {
   final String? restorationScopeId;
   final ScrollBehavior? scrollBehavior;
   final Widget? home;
+  final String? initialRoute;
+  final List<Route<dynamic>> Function(String)? onGenerateInitialRoutes;
+  final Route<dynamic> Function(RouteSettings)? onGenerateRoute;
 
   const FlutterWind({
     super.key,
@@ -57,6 +60,9 @@ class FlutterWind extends StatefulWidget {
     this.restorationScopeId,
     this.scrollBehavior,
     this.home,
+    this.initialRoute,
+    this.onGenerateInitialRoutes,
+    this.onGenerateRoute,
   });
 
   @override
@@ -100,13 +106,13 @@ class _FlutterWindState extends State<FlutterWind> with WidgetsBindingObserver {
 
     if (widget.showDevTools) {
       child = DeveloperTools(
-        child: child,
         backgroundColor:
             widget.devToolsBackgroundColor ?? const Color(0x88000000),
         textColor: widget.devToolsTextColor ?? Colors.white,
         showFps: widget.showFps,
         showMemoryUsage: widget.showMemoryUsage,
         showBuildTimes: widget.showBuildTimes,
+        child: child,
       );
     }
 
@@ -126,6 +132,9 @@ class _FlutterWindState extends State<FlutterWind> with WidgetsBindingObserver {
       actions: widget.actions,
       restorationScopeId: widget.restorationScopeId,
       scrollBehavior: widget.scrollBehavior,
+      initialRoute: widget.initialRoute,
+      onGenerateInitialRoutes: widget.onGenerateInitialRoutes,
+      onGenerateRoute: widget.onGenerateRoute,
       home: MediaQuery(
         // Create a new MediaQuery that will rebuild on size changes
         data: MediaQuery.of(context).copyWith(),
