@@ -29,7 +29,11 @@ class FlutterWind extends StatefulWidget {
   final Map<Type, Action<Intent>>? actions;
   final String? restorationScopeId;
   final ScrollBehavior? scrollBehavior;
+
+  /// Either provide a home widget or use routing
   final Widget? home;
+
+  /// Routing configuration - only use if home is not provided
   final String? initialRoute;
   final List<Route<dynamic>> Function(String)? onGenerateInitialRoutes;
   final Route<dynamic> Function(RouteSettings)? onGenerateRoute;
@@ -63,7 +67,17 @@ class FlutterWind extends StatefulWidget {
     this.initialRoute,
     this.onGenerateInitialRoutes,
     this.onGenerateRoute,
-  });
+  }) : assert(
+          (home == null &&
+                  initialRoute != null &&
+                  onGenerateInitialRoutes != null &&
+                  onGenerateRoute != null) ||
+              (home != null &&
+                  initialRoute == null &&
+                  onGenerateInitialRoutes == null &&
+                  onGenerateRoute == null),
+          'Either provide home widget or routing configuration, but not both',
+        );
 
   @override
   State<FlutterWind> createState() => _FlutterWindState();
@@ -132,14 +146,19 @@ class _FlutterWindState extends State<FlutterWind> with WidgetsBindingObserver {
       actions: widget.actions,
       restorationScopeId: widget.restorationScopeId,
       scrollBehavior: widget.scrollBehavior,
-      initialRoute: widget.initialRoute,
-      onGenerateInitialRoutes: widget.onGenerateInitialRoutes,
-      onGenerateRoute: widget.onGenerateRoute,
-      home: MediaQuery(
-        // Create a new MediaQuery that will rebuild on size changes
-        data: MediaQuery.of(context).copyWith(),
-        child: child,
-      ),
+      // Only set routing properties if home is not provided
+      initialRoute: widget.home == null ? widget.initialRoute : null,
+      onGenerateInitialRoutes:
+          widget.home == null ? widget.onGenerateInitialRoutes : null,
+      onGenerateRoute: widget.home == null ? widget.onGenerateRoute : null,
+      // Only set home if routing is not provided
+      home: widget.home != null
+          ? MediaQuery(
+              // Create a new MediaQuery that will rebuild on size changes
+              data: MediaQuery.of(context).copyWith(),
+              child: child,
+            )
+          : null,
     );
   }
 }
