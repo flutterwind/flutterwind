@@ -109,7 +109,9 @@
   * Multiple locales
 
 ## 0.0.8
+* Minor Improvements
 
+## 0.0.9
 * Added plugin SDK foundations:
   * `FlutterWindClassHandler` + ordered handler registry.
   * Public utility handler registration API.
