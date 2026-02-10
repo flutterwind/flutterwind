@@ -3,8 +3,10 @@ import 'package:flutterwind_core/src/utils/parser.dart';
 
 class AnimationPresets {
   static void apply(String cls, FlutterWindStyle style) {
-    if (cls.startsWith('animate-')) {
-      final value = cls.substring(8);
+    if (cls.startsWith('animate-') || cls.startsWith('transition-')) {
+      final value = cls.startsWith('animate-')
+          ? cls.substring(8)
+          : cls.substring('transition-'.length);
 
       // Handle duration modifiers
       if (value == 'slow') {

@@ -1,7 +1,7 @@
 <div align="center">
 <p align="center">
-  <a href="https://flutterwind.dev" target="_blank">
-    <img src="https://flutterwind.dev/img/logo.svg" alt="Tailwind CSS" width="70" height="70">
+  <a href="https://flutterwind.brighthustle.in" target="_blank">
+    <img src="https://flutterwind.brighthustle.in/img/logo.svg" alt="Tailwind CSS" width="70" height="70">
     <h1 align="center" style="color:red;">FlutterWind</h1>
   </a>
 </p>
@@ -29,7 +29,38 @@ FlutterWind processes your styles during your application's build step and uses 
 
 ## Installation
 
-If you have an existing project, [use these guides](https://www.flutterwind.dev/getting-started/installation) to configure FlutterWind for your respective stack.
+If you have an existing project, [use these guides](https://flutterwind.brighthustle.in) to configure FlutterWind for your respective stack.
+
+## Plugin Quick Start
+
+You can extend FlutterWind with custom utility handlers and reusable presets.
+
+```dart
+import 'package:flutterwind_core/flutterwind.dart';
+
+void installMyPlugin() {
+  registerFlutterWindUtilityHandler(
+    FlutterWindClassHandler(
+      name: 'my_plugin',
+      order: 900,
+      apply: (cls, style) {
+        final s = style as FlutterWindStyle;
+        if (cls == 'my-opacity') {
+          s.opacity = 0.85;
+        }
+      },
+    ),
+  );
+}
+```
+
+Call `installMyPlugin()` once in `main()` before `runApp(...)`, then use your class:
+
+```dart
+Container().className('p-4 my-opacity');
+```
+
+For full examples (utility plugins + preset plugins + ordering), see the online docs at [flutterwind.brighthustle.in](https://flutterwind.brighthustle.in).
 
 ## Features
 
@@ -54,7 +85,7 @@ If you have an existing project, [use these guides](https://www.flutterwind.dev/
 - Fast and consistent style application via hot reload
 - Includes changes made to `tailwind.config.yaml`
 
-[More details here](https://www.flutterwind.dev/blog/announcement-flutterwind-v4#breaking-changes-from-v2)
+[More details here](https://flutterwind.brighthustle.in)
 
 ## Contribution
 
@@ -66,10 +97,10 @@ If you have an existing project, [use these guides](https://www.flutterwind.dev/
 
 There are a number of different component libraries available that use FlutterWind to achieve different results. You should pick the one that best suits your needs.
 
-### [FlutterWindUI](https://flutterwind.dev)
+### [FlutterWindUI](https://flutterwind.brighthustle.in)
 
 This multi-platform library focuses on achieving native feel for each individual platform using the familiar interface of Tailwind CSS.
 
 ## Documentation
 
-Learn more on [our website](https://flutterwind.dev).
+Learn more on [our website and docs](https://flutterwind.brighthustle.in).

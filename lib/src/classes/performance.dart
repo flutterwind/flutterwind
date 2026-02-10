@@ -18,6 +18,7 @@ class PerformanceClass {
   // Memory optimization presets
   static const Map<String, bool> memoryOptimizationValues = {
     'optimize-memory': true,
+    'memory-optimize': true,
     'no-optimize-memory': false,
   };
 
@@ -25,12 +26,15 @@ class PerformanceClass {
   static const Map<String, String> imageOptimizationValues = {
     'optimize-image': 'auto',
     'optimize-image-quality': 'quality',
+    'image-optimize-quality': 'quality',
     'optimize-image-size': 'size',
+    'image-optimize-size': 'size',
   };
 
   // Widget recycling presets
   static const Map<String, bool> widgetRecyclingValues = {
     'recycle-widgets': true,
+    'widget-recycle': true,
     'no-recycle-widgets': false,
   };
 

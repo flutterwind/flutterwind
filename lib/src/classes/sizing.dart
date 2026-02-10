@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutterwind_core/src/config/tailwind_config.dart';
 import 'package:flutterwind_core/src/utils/parser.dart';
 
 class SizingClass {
@@ -69,11 +70,6 @@ class SizingClass {
   static void _applyWidth(String value, FlutterWindStyle style) {
     // Support arbitrary value: e.g., w-[250] or w-[250px]
     if (value.startsWith('[') && value.endsWith(']')) {
-      // final inner = value.substring(1, value.length - 1).replaceAll('px', '');
-      // double? width = double.tryParse(inner);
-      // if (width != null) {
-      //   style.width = width;
-      // }
       final inner = value.substring(1, value.length - 1);
       if (inner.endsWith('%')) {
         final numStr = inner.replaceAll('%', '');
@@ -81,8 +77,12 @@ class SizingClass {
         if (percent != null) {
           final view = WidgetsBinding.instance.platformDispatcher.views.first;
           final screenWidth = view.physicalSize.width / view.devicePixelRatio;
-          final screenWidthParam = screenWidth * (percent / 100);
           style.width = screenWidth * (percent / 100);
+        }
+      } else if (inner.endsWith('rem')) {
+        final rem = double.tryParse(inner.replaceAll('rem', ''));
+        if (rem != null) {
+          style.width = rem * 16;
         }
       } else {
         final numStr = inner.replaceAll('px', '');
@@ -114,6 +114,10 @@ class SizingClass {
     else if (sizingScale.containsKey(value)) {
       style.width = sizingScale[value];
     }
+    // Look up user sizing scale from Tailwind spacing tokens
+    else if (TailwindConfig.spacing.containsKey(value)) {
+      style.width = TailwindConfig.spacing[value];
+    }
     // Look up in container sizes
     else if (containerSizes.containsKey(value)) {
       style.width = containerSizes[value];
@@ -127,10 +131,18 @@ class SizingClass {
 
   static void _applyHeight(String value, FlutterWindStyle style) {
     if (value.startsWith('[') && value.endsWith(']')) {
-      final inner = value.substring(1, value.length - 1).replaceAll('px', '');
-      double? height = double.tryParse(inner);
-      if (height != null) {
-        style.height = height;
+      final inner = value.substring(1, value.length - 1);
+      if (inner.endsWith('rem')) {
+        final rem = double.tryParse(inner.replaceAll('rem', ''));
+        if (rem != null) {
+          style.height = rem * 16;
+        }
+      } else {
+        final px = inner.replaceAll('px', '');
+        final height = double.tryParse(px);
+        if (height != null) {
+          style.height = height;
+        }
       }
     } else if (value.contains('/')) {
       // Fractional height
@@ -148,6 +160,8 @@ class SizingClass {
       style.heightFactor = 1.0;
     } else if (sizingScale.containsKey(value)) {
       style.height = sizingScale[value];
+    } else if (TailwindConfig.spacing.containsKey(value)) {
+      style.height = TailwindConfig.spacing[value];
     } else if (containerSizes.containsKey(value)) {
       style.height = containerSizes[value];
     } else if (value == 'auto') {

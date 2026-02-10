@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutterwind_core/src/utils/parser.dart';
 
@@ -40,29 +39,23 @@ extension GridSpanExtension on Widget {
 
 extension FlutterWindLayoutExtension on Iterable<Widget> {
   Widget className(String classString) {
-    final classRegex =
-        RegExp(r'(?:\w+:[^\s]+|\w+-\[[^\]]*\]|\w+[\w-]*|\[[^\]]*\])');
-    final classes =
-        classRegex.allMatches(classString).map((m) => m.group(0)!).toList();
-
-    // Check if this is a grid layout
-    if (classes.contains('grid')) {
-      return _buildGridLayout(classes);
-    }
-
-    // Otherwise handle as flex layout
-    return _buildFlexLayout(classes);
+    final classes = tokenizeFlutterWindClasses(classString);
+    return Builder(
+      builder: (context) {
+        if (classes.contains('grid')) {
+          return _buildGridLayout(classes, context);
+        }
+        return _buildFlexLayout(classes, context);
+      },
+    );
   }
 
-  Widget _buildFlexLayout(List<String> classes) {
+  Widget _buildFlexLayout(List<String> classes, BuildContext context) {
     // Process flex-related classes
     bool isColumn = classes.contains('flex-col');
     bool isWrap = classes.contains('flex-wrap');
     bool isReverse = classes.contains('flex-row-reverse') ||
         classes.contains('flex-col-reverse');
-    bool isGrow = classes.contains('flex-grow');
-    bool isShrink = classes.contains('flex-shrink');
-    bool isBasis = classes.contains('flex-basis');
 
     // If flex is specified without direction, default to row
     if (classes.contains('flex') &&
@@ -243,17 +236,14 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
     }
 
     // Apply other classes for styling (background, padding, etc.)
-    return applyFlutterWind(flexWidget, classes);
+    return applyFlutterWind(flexWidget, classes, context);
   }
 
   /// Builds a grid layout
-  Widget _buildGridLayout(List<String> classes) {
+  Widget _buildGridLayout(List<String> classes, BuildContext context) {
     // Parse grid properties
     int gridColumns = 2; // Default 2 columns
     double gridGap = 8.0; // Default gap
-    bool isAutoRows = classes.contains('auto-rows');
-    bool isAutoCols = classes.contains('auto-cols');
-    String? autoFlow = null;
 
     for (final cls in classes) {
       if (cls.startsWith('grid-cols-')) {
@@ -264,8 +254,6 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
       } else if (cls.startsWith('gap-')) {
         final value = cls.substring('gap-'.length);
         gridGap = _parseSpacing(value) ?? 8.0;
-      } else if (cls.startsWith('auto-flow-')) {
-        autoFlow = cls.substring('auto-flow-'.length);
       }
     }
 
@@ -373,7 +361,7 @@ extension FlutterWindLayoutExtension on Iterable<Widget> {
     );
 
     // Apply other styling (background, padding, etc.)
-    return applyFlutterWind(gridWidget, classes);
+    return applyFlutterWind(gridWidget, classes, context);
   }
 }
 

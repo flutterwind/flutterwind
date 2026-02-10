@@ -15,10 +15,20 @@ class AccessibilityClass {
   };
 
   static void apply(String className, FlutterWindStyle style) {
-    if (className == 'focus:outline-none') {
+    if (className == 'outline-none') {
       style.focusable = false;
-    } else if (className == 'focus:outline') {
+    } else if (className == 'outline') {
       style.focusable = true;
+    } else if (className == 'sr-only') {
+      style.screenReaderOnly = true;
+      style.semanticsLabel ??= '';
+    } else if (className == 'aria-live') {
+      style.liveRegion = true;
+    } else if (className.startsWith('focus-order-')) {
+      final order = int.tryParse(className.substring('focus-order-'.length));
+      if (order != null) {
+        style.focusOrder = order;
+      }
     } else if (focusableValues.containsKey(className)) {
       _applyFocusable(className, style);
     } else if (focusOrderValues.containsKey(className)) {

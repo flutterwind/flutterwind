@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutterwind_core/src/config/tailwind_config.dart';
 import 'package:flutterwind_core/src/utils/parser.dart';
 
 class BackgroundClass {
@@ -57,6 +58,20 @@ class BackgroundClass {
   };
 
   static void apply(String cls, FlutterWindStyle style) {
+    if (cls == 'shader-gradient') {
+      style.gradient = const LinearGradient(
+        colors: [Color(0xFF4F46E5), Color(0xFF7C3AED), Color(0xFFEC4899)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+      return;
+    }
+
+    if (cls.startsWith('blend-')) {
+      _applyBlendMode(cls.substring('blend-'.length), style);
+      return;
+    }
+
     if (cls.startsWith('bg-')) {
       final value = cls.substring(3);
       if (value.startsWith('size-')) {
@@ -75,6 +90,11 @@ class BackgroundClass {
         _applyBackgroundClip(value.substring(5), style);
       } else if (value.startsWith('opacity-')) {
         _applyBackgroundOpacity(value.substring(8), style);
+      } else {
+        final semanticColor = TailwindConfig.resolveColorToken(value);
+        if (semanticColor != null) {
+          style.backgroundColor = semanticColor;
+        }
       }
     }
   }

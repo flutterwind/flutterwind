@@ -90,12 +90,15 @@ class MemoryOptimized extends StatefulWidget {
 class _MemoryOptimizedState extends State<MemoryOptimized>
     with AutomaticKeepAliveClientMixin {
   @override
-  bool get wantKeepAlive => true;
+  bool get wantKeepAlive => false;
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return widget.child;
+    // Avoid retaining offscreen list items and isolate repaints.
+    return RepaintBoundary(
+      child: widget.child,
+    );
   }
 }
 

@@ -2,10 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutterwind_core/src/utils/parser.dart';
 import 'network_monitor.dart';
 import 'performance_profiler.dart';
-import 'dart:developer' as developer;
-import 'dart:async';
 
 enum DevToolsTab {
   metrics,
@@ -14,7 +13,10 @@ enum DevToolsTab {
   platform,
   memory,
   logger,
+  diagnostics,
 }
+
+enum DevToolsProfile { minimal, standard, full }
 
 class LogMessage {
   final String message;
@@ -75,8 +77,34 @@ class _DeveloperToolsState extends State<DeveloperTools>
   final PerformanceProfiler _performanceProfiler = PerformanceProfiler();
   final List<LogMessage> _logs = [];
   final Map<String, int> _widgetRebuildCounts = {};
-  StreamSubscription<String>? _printSubscription;
-  final Function? _originalPrint = developer.log;
+  DevToolsProfile _profile = DevToolsProfile.standard;
+
+  void _runAfterBuild(VoidCallback callback) {
+    if (!mounted) return;
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      callback();
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      callback();
+    });
+  }
+
+  void _safeSetState(VoidCallback updater) {
+    _runAfterBuild(() {
+      if (!mounted) return;
+      setState(updater);
+    });
+  }
+
+  void _safeMarkOverlayNeedsBuild() {
+    _runAfterBuild(() {
+      _overlayEntry?.markNeedsBuild();
+    });
+  }
 
   @override
   void initState() {
@@ -156,8 +184,10 @@ class _DeveloperToolsState extends State<DeveloperTools>
   }
 
   void _startMemoryTracking() {
+    if (_profile == DevToolsProfile.minimal || !widget.showMemoryUsage) return;
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
+      if (_profile == DevToolsProfile.minimal || !widget.showMemoryUsage) return;
 
       final stats = PlatformDispatcher.instance.views.first.display;
       final pixelRatio = stats.devicePixelRatio;
@@ -166,10 +196,10 @@ class _DeveloperToolsState extends State<DeveloperTools>
           size.width * size.height * 4 * pixelRatio * pixelRatio;
       final memoryMB = (screenBytes / 1024 / 1024).toStringAsFixed(1);
 
-      setState(() {
+      _safeSetState(() {
         _memoryUsage = '$memoryMB MB';
       });
-      _overlayEntry?.markNeedsBuild();
+      _safeMarkOverlayNeedsBuild();
       _startMemoryTracking();
     });
   }
@@ -333,19 +363,20 @@ class _DeveloperToolsState extends State<DeveloperTools>
   }
 
   void _onTick(Duration elapsed) {
+    if (_profile == DevToolsProfile.minimal || !widget.showFps) return;
     _frameCount++;
 
     // Calculate FPS every second
     final difference = elapsed - _lastTime;
     if (difference.inMilliseconds > 1000) {
-      setState(() {
+      _safeSetState(() {
         // Calculate frames per second
         _fps = (_frameCount * 1000) / difference.inMilliseconds;
         _frameCount = 0;
         _lastTime = elapsed;
       });
       // Update the overlay
-      _overlayEntry?.markNeedsBuild();
+      _safeMarkOverlayNeedsBuild();
     }
   }
 
@@ -443,6 +474,13 @@ class _DeveloperToolsState extends State<DeveloperTools>
             onTap: () => _switchTab(DevToolsTab.logger),
             textColor: widget.textColor,
           ),
+          _TabButton(
+            icon: Icons.rule_folder_outlined,
+            label: 'Diagnostics',
+            isSelected: _currentTab == DevToolsTab.diagnostics,
+            onTap: () => _switchTab(DevToolsTab.diagnostics),
+            textColor: widget.textColor,
+          ),
         ],
       ),
     );
@@ -459,10 +497,34 @@ class _DeveloperToolsState extends State<DeveloperTools>
     switch (_currentTab) {
       case DevToolsTab.metrics:
         return SizedBox(
-          height: 120,
+          height: 165,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Wrap(
+                spacing: 6,
+                children: [
+                  _ProfileChip(
+                    label: 'Minimal',
+                    selected: _profile == DevToolsProfile.minimal,
+                    onTap: () => _setProfile(DevToolsProfile.minimal),
+                    textColor: widget.textColor,
+                  ),
+                  _ProfileChip(
+                    label: 'Standard',
+                    selected: _profile == DevToolsProfile.standard,
+                    onTap: () => _setProfile(DevToolsProfile.standard),
+                    textColor: widget.textColor,
+                  ),
+                  _ProfileChip(
+                    label: 'Full',
+                    selected: _profile == DevToolsProfile.full,
+                    onTap: () => _setProfile(DevToolsProfile.full),
+                    textColor: widget.textColor,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               if (widget.showFps)
                 _InfoRow(
                   icon: Icons.speed,
@@ -945,36 +1007,101 @@ class _DeveloperToolsState extends State<DeveloperTools>
             ],
           ),
         );
+      case DevToolsTab.diagnostics:
+        return SizedBox(
+          height: 250,
+          child: ValueListenableBuilder<List<FlutterWindDiagnostic>>(
+            valueListenable: flutterWindDiagnosticsNotifier,
+            builder: (context, diagnostics, _) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Parser Diagnostics: ${diagnostics.length}',
+                    style: TextStyle(
+                      color: widget.textColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: diagnostics.length,
+                      itemBuilder: (context, index) {
+                        final diagnostic = diagnostics[diagnostics.length - 1 - index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            '[${diagnostic.code}] ${diagnostic.token} - ${diagnostic.message}'
+                            '${diagnostic.suggestions.isNotEmpty ? ' (suggestions: ${diagnostic.suggestions.join(', ')})' : ''}',
+                            style: TextStyle(
+                              color: widget.textColor,
+                              fontSize: 10,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
     }
   }
 
   void addLog(String message, {String level = 'info'}) {
     if (!mounted) return;
+    if (_profile == DevToolsProfile.minimal) return;
 
-    setState(() {
-      _logs.insert(0, LogMessage(message, level));
-      // Keep only last 1000 logs
-      if (_logs.length > 1000) {
-        _logs.removeLast();
-      }
-    });
+    // Always keep log history updated.
+    _logs.insert(0, LogMessage(message, level));
+    if (_logs.length > 1000) {
+      _logs.removeLast();
+    }
 
-    // Only rebuild overlay if logger tab is active
-    if (_currentTab == DevToolsTab.logger) {
-      _overlayEntry?.markNeedsBuild();
+    // Only trigger UI updates when the logger tab is visible.
+    if (_currentTab == DevToolsTab.logger && _isExpanded) {
+      _safeSetState(() {});
+      _safeMarkOverlayNeedsBuild();
     }
   }
 
   void trackWidgetRebuild(String widgetName) {
     if (_performanceProfiler.isRecording) {
-      setState(() {
-        _widgetRebuildCounts[widgetName] =
-            (_widgetRebuildCounts[widgetName] ?? 0) + 1;
-      });
-      addLog(
-          'Widget rebuilt: $widgetName (${_widgetRebuildCounts[widgetName]} times)',
-          level: 'info');
+      if (_profile == DevToolsProfile.minimal) return;
+      _widgetRebuildCounts[widgetName] =
+          (_widgetRebuildCounts[widgetName] ?? 0) + 1;
+
+      // Avoid logging every rebuild to prevent heavy UI jank.
+      if (_currentTab == DevToolsTab.performance && _isExpanded) {
+        _safeSetState(() {});
+        _safeMarkOverlayNeedsBuild();
+      }
     }
+  }
+
+  void _setProfile(DevToolsProfile profile) {
+    _safeSetState(() {
+      _profile = profile;
+    });
+    switch (profile) {
+      case DevToolsProfile.minimal:
+        _performanceProfiler.setProfile(PerformanceProfile.minimal);
+        break;
+      case DevToolsProfile.standard:
+        _performanceProfiler.setProfile(PerformanceProfile.standard);
+        break;
+      case DevToolsProfile.full:
+        _performanceProfiler.setProfile(PerformanceProfile.full);
+        break;
+    }
+    if (profile != DevToolsProfile.minimal) {
+      _startMemoryTracking();
+    }
+    _safeMarkOverlayNeedsBuild();
   }
 }
 
@@ -1072,6 +1199,43 @@ class _TabButton extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color textColor;
+
+  const _ProfileChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? textColor.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: textColor.withOpacity(0.3)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 10,
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
       ),
     );

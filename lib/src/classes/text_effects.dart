@@ -84,6 +84,7 @@ class TextEffects {
 
   // Text wrapping presets
   static const Map<String, bool> textWrapValues = {
+    'text-wrap': true,
     'whitespace-normal': true,
     'whitespace-nowrap': false,
     'whitespace-pre': false,
@@ -183,7 +184,7 @@ class TextEffects {
       _applyTextOverflow(cls, style);
     }
     // Handle text wrapping
-    else if (cls.startsWith('whitespace-')) {
+    else if (cls == 'text-wrap' || cls.startsWith('whitespace-')) {
       _applyTextWrap(cls, style);
     }
     // Handle text selection

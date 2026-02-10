@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+
+enum PerformanceProfile { minimal, standard, full }
 
 class PerformanceEvent {
   final String name;
@@ -28,10 +28,16 @@ class PerformanceProfiler {
       StreamController<List<PerformanceEvent>>.broadcast();
   final _buildTimes = <String, List<Duration>>{};
   bool _isRecording = false;
+  PerformanceProfile _profile = PerformanceProfile.standard;
 
   Stream<List<PerformanceEvent>> get eventsStream => _eventsController.stream;
   List<PerformanceEvent> get events => List.unmodifiable(_events);
   bool get isRecording => _isRecording;
+  PerformanceProfile get profile => _profile;
+
+  void setProfile(PerformanceProfile profile) {
+    _profile = profile;
+  }
 
   void startRecording() {
     _isRecording = true;
@@ -47,6 +53,7 @@ class PerformanceProfiler {
 
   void recordBuildTime(String widgetName, Duration duration) {
     if (!_isRecording) return;
+    if (!_allowsType('build')) return;
 
     _buildTimes.putIfAbsent(widgetName, () => []).add(duration);
 
@@ -78,6 +85,7 @@ class PerformanceProfiler {
 
   void recordLayoutTime(String widgetName, Duration duration) {
     if (!_isRecording) return;
+    if (!_allowsType('layout')) return;
 
     final event = PerformanceEvent(
       name: widgetName,
@@ -92,6 +100,7 @@ class PerformanceProfiler {
 
   void recordPaintTime(String widgetName, Duration duration) {
     if (!_isRecording) return;
+    if (!_allowsType('paint')) return;
 
     final event = PerformanceEvent(
       name: widgetName,
@@ -108,5 +117,16 @@ class PerformanceProfiler {
     _events.clear();
     _buildTimes.clear();
     _eventsController.add(_events);
+  }
+
+  bool _allowsType(String type) {
+    switch (_profile) {
+      case PerformanceProfile.minimal:
+        return type == 'build';
+      case PerformanceProfile.standard:
+        return type == 'build' || type == 'layout';
+      case PerformanceProfile.full:
+        return true;
+    }
   }
 }

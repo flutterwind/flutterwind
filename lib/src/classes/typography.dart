@@ -16,6 +16,11 @@ class TypographyClass {
       } else if (value == 'justify') {
         style.textAlign = TextAlign.justify;
       } else {
+        final semanticColor = TailwindConfig.resolveColorToken(value);
+        if (semanticColor != null) {
+          style.textColor = semanticColor;
+          return;
+        }
         double? size = _parseTextSize(value);
         if (size != null) {
           style.textSize = size;

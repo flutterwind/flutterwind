@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:flutterwind_core/src/config/tailwind_config.dart';
 import 'package:flutterwind_core/src/classes/animation_presets.dart';
 import 'package:flutterwind_core/src/classes/animations.dart';
 import 'package:flutterwind_core/src/classes/aspect_ratio.dart';
@@ -15,14 +17,13 @@ import 'package:flutterwind_core/src/classes/typography.dart';
 import 'package:flutterwind_core/src/classes/borders.dart';
 import 'package:flutterwind_core/src/classes/opacity.dart';
 import 'package:flutterwind_core/src/classes/shadows.dart';
-import 'package:flutterwind_core/src/utils/flutterwind_breakpoints.dart';
-import 'package:flutterwind_core/src/utils/hover_detector.dart';
 import 'package:flutterwind_core/src/classes/background.dart';
 import 'package:flutterwind_core/src/classes/accessibility.dart';
 import 'package:flutterwind_core/src/classes/performance.dart';
+import 'package:flutterwind_core/src/plugin/class_handler.dart';
+import 'package:flutterwind_core/src/plugin/class_handler_registry.dart';
+import 'package:flutterwind_core/src/presets/component_presets.dart';
 import 'package:flutterwind_core/src/widgets/performance_widgets.dart';
-import 'package:flutter/rendering.dart';
-import 'dart:async';
 
 class FlutterWindStyle {
   EdgeInsets? padding;
@@ -131,6 +132,8 @@ class FlutterWindStyle {
   String? semanticsLabel;
   bool? focusable;
   int? focusOrder;
+  bool? screenReaderOnly;
+  bool? liveRegion;
 
   // Performance properties
   bool? lazyLoad;
@@ -211,22 +214,21 @@ class FlutterWindStyle {
       current = Container(
         decoration: BoxDecoration(
           shape: backgroundClip ?? BoxShape.rectangle,
-          image: DecorationImage(
-            image: AssetImage(''), // Placeholder image
-            fit: backgroundFit ?? BoxFit.none,
-            alignment: backgroundAlignment ?? Alignment.center,
-            colorFilter:
-                backgroundBlendMode != null || backgroundOpacity != null
-                    ? ColorFilter.mode(
-                        Colors.white.withOpacity(backgroundOpacity ?? 1.0),
-                        backgroundBlendMode ?? BlendMode.srcOver,
-                      )
-                    : null,
-            repeat: backgroundRepeat ?? ImageRepeat.noRepeat,
-          ),
+          // Background image utilities require an image source, which is not
+          // represented by current class syntax. Avoid invalid placeholders.
         ),
         child: current,
       );
+
+      if (backgroundBlendMode != null || backgroundOpacity != null) {
+        current = ColorFiltered(
+          colorFilter: ColorFilter.mode(
+            Colors.white.withValues(alpha: backgroundOpacity ?? 1.0),
+            backgroundBlendMode ?? BlendMode.srcOver,
+          ),
+          child: current,
+        );
+      }
     }
 
     // Apply image filter (blur) if specified
@@ -242,68 +244,35 @@ class FlutterWindStyle {
         textTransform != null ||
         fontVariantNumeric != null ||
         textIndent != null) {
-      TextStyle textStyle = TextStyle(
+      final textStyle = TextStyle(
         decoration: textDecoration,
         fontFeatures: fontVariantNumeric != null ? [fontVariantNumeric!] : null,
       );
 
-      // Apply text transformation
-      if (textTransform != null) {
-        current = Builder(
-          builder: (context) {
-            String transformedText = '';
-            // Get the text from the child widget if possible
-            if (current is Text) {
-              final textWidget = current as Text;
-              transformedText = textWidget.data ?? '';
+      if (current is Text) {
+        final textWidget = current;
+        var content = textWidget.data ?? '';
+        if (textTransform != null) {
+          content = _applyTextTransform(content, textTransform!);
+        }
 
-              // Apply the transformation
-              if (textTransform == 'uppercase') {
-                transformedText = transformedText.toUpperCase();
-              } else if (textTransform == 'lowercase') {
-                transformedText = transformedText.toLowerCase();
-              } else if (textTransform == 'capitalize') {
-                transformedText = transformedText
-                    .split(' ')
-                    .map((word) => word.isNotEmpty
-                        ? '${word[0].toUpperCase()}${word.substring(1)}'
-                        : '')
-                    .join(' ');
-              }
-
-              // Create a new Text widget with the transformed text
-              current = Text(
-                transformedText,
-                style: textWidget.style?.copyWith(
-                      decoration: textDecoration,
-                      fontFeatures: fontVariantNumeric != null
-                          ? [fontVariantNumeric!]
-                          : null,
-                    ) ??
-                    textStyle,
-                textAlign: textWidget.textAlign ?? textAlign,
-                maxLines: textWidget.maxLines,
-                overflow: textWidget.overflow,
-                softWrap: textWidget.softWrap,
-              );
-            }
-            return current;
-          },
+        current = Text(
+          content,
+          style: textWidget.style?.copyWith(
+                decoration: textDecoration,
+                fontFeatures:
+                    fontVariantNumeric != null ? [fontVariantNumeric!] : null,
+              ) ??
+              textStyle,
+          textAlign: textWidget.textAlign ?? textAlign,
+          maxLines: textWidget.maxLines,
+          overflow: textWidget.overflow,
+          softWrap: textWidget.softWrap,
         );
       } else if (textDecoration != null || fontVariantNumeric != null) {
-        // Apply text style without transformation
-        current = Builder(
-          builder: (context) {
-            return DefaultTextStyle(
-              style: DefaultTextStyle.of(context).style.copyWith(
-                    decoration: textDecoration,
-                    fontFeatures: fontVariantNumeric != null
-                        ? [fontVariantNumeric!]
-                        : null,
-                  ),
-              child: current,
-            );
-          },
+        current = DefaultTextStyle.merge(
+          style: textStyle,
+          child: current,
         );
       }
 
@@ -348,6 +317,15 @@ class FlutterWindStyle {
       );
     }
 
+    // Apply aspect ratio before external sizing wrappers are added.
+    // This allows width/height constraints applied below to bound AspectRatio.
+    if (aspectRatio != null) {
+      current = AspectRatio(
+        aspectRatio: aspectRatio!,
+        child: current,
+      );
+    }
+
     if (widthFactor != null || heightFactor != null) {
       current = FractionallySizedBox(
         widthFactor: widthFactor,
@@ -371,14 +349,6 @@ class FlutterWindStyle {
         scrollDirection: overFlowScrollAxis ?? Axis.vertical,
         clipBehavior: overFlowHidden == true ? Clip.hardEdge : Clip.none,
         physics: const BouncingScrollPhysics(),
-        child: current,
-      );
-    }
-
-    // Apply aspect ratio if specified
-    if (aspectRatio != null) {
-      current = AspectRatio(
-        aspectRatio: aspectRatio!,
         child: current,
       );
     }
@@ -585,8 +555,6 @@ class FlutterWindStyle {
       );
     }
 
-    print("current :: $current");
-
     // Apply performance optimizations if specified
     if (lazyLoad == true ||
         cache == true ||
@@ -657,114 +625,1010 @@ class FlutterWindStyle {
       );
     }
 
+    if (focusOrder != null) {
+      current = FocusTraversalOrder(
+        order: NumericFocusOrder(focusOrder!.toDouble()),
+        child: current,
+      );
+    }
+
+    if (focusable != null) {
+      current = Focus(
+        canRequestFocus: focusable!,
+        descendantsAreFocusable: focusable!,
+        child: current,
+      );
+    }
+
+    if (screenReaderOnly == true) {
+      current = Semantics(
+        label: semanticsLabel,
+        liveRegion: liveRegion == true,
+        child: const SizedBox.shrink(),
+      );
+      return current;
+    }
+
+    if (semanticsLabel != null || liveRegion == true) {
+      current = Semantics(
+        label: semanticsLabel,
+        liveRegion: liveRegion == true,
+        child: current,
+      );
+    }
+
     return current;
   }
 }
 
-/// Parses and applies Tailwind-like classes to a widget.
-Widget applyFlutterWind(Widget widget, List<String> classes,
-    [BuildContext? context]) {
+enum _VariantState { hover, focus, focusVisible, active, disabled }
+
+const List<String> kFlutterWindSupportedVariants = <String>[
+  'dark',
+  'light',
+  'hover',
+  'focus',
+  'focus-visible',
+  'active',
+  'input-hover',
+  'input-focus',
+  'input-focus-visible',
+  'input-active',
+  'group-hover',
+  'group-focus',
+  'group-active',
+  'peer-hover',
+  'peer-focus',
+  'peer-active',
+  'peer-disabled',
+  'disabled',
+  'input-disabled',
+];
+
+const List<String> kFlutterWindSupportedUtilityPrefixes = <String>[
+  'font-',
+  'p-',
+  'pt-',
+  'pb-',
+  'pl-',
+  'pr-',
+  'px-',
+  'py-',
+  'ps-',
+  'pe-',
+  'm-',
+  'mt-',
+  'mb-',
+  'ml-',
+  'mr-',
+  'mx-',
+  'my-',
+  'ms-',
+  'me-',
+  'flex',
+  'flex-',
+  'grid',
+  'grid-',
+  'gap-',
+  'space-x-',
+  'space-y-',
+  'justify-',
+  'items-',
+  'content-',
+  'grow-',
+  'shrink-',
+  'basis-',
+  'auto-flow-',
+  'col-span-',
+  'bg-',
+  'text-',
+  'input-',
+  'tracking-',
+  'word-spacing-',
+  'leading-',
+  'from-',
+  'via-',
+  'to-',
+  'rounded',
+  'opacity-',
+  'shadow',
+  'w-',
+  'h-',
+  'size-',
+  'overflow-',
+  'aspect-',
+  'animate-',
+  'transition-',
+  'duration-',
+  'delay-',
+  'ease-',
+  'top-',
+  'right-',
+  'bottom-',
+  'left-',
+  'inset-',
+  'scale-',
+  'rotate-',
+  'translate-',
+  'skew-',
+  'origin-',
+  'blur-',
+  'backdrop-blur-',
+  'backdrop-filter',
+  'blend-',
+  'shader-',
+  'brightness-',
+  'contrast-',
+  'drop-shadow',
+  'sr-only',
+  'focusable',
+  'focus-order-',
+  'lazy-load',
+  'cache',
+  'memory-optimize',
+  'optimize-memory',
+  'no-optimize-memory',
+  'image-optimize-',
+  'widget-recycle',
+  'debounce-',
+  'throttle-',
+  'btn-',
+  'card-',
+  'border',
+];
+
+const Set<String> kFlutterWindSupportedExactUtilities = <String>{
+  'underline',
+  'line-through',
+  'overline',
+  'no-underline',
+  'uppercase',
+  'lowercase',
+  'capitalize',
+  'normal-case',
+  'select-none',
+  'select-text',
+  'select-all',
+  'rtl',
+  'ltr',
+  'focus-first',
+  'focus-last',
+  'text-wrap',
+  'aria-live',
+  'outline',
+  'outline-none',
+  'group',
+  'peer',
+  'btn',
+  'card',
+  'card-header',
+  'card-body',
+  'input-filled',
+};
+
+enum FlutterWindDiagnosticSeverity { info, warning, error }
+
+class FlutterWindDiagnostic {
+  final FlutterWindDiagnosticSeverity severity;
+  final String code;
+  final String message;
+  final String token;
+  final List<String> suggestions;
+  final DateTime timestamp;
+
+  const FlutterWindDiagnostic({
+    required this.severity,
+    required this.code,
+    required this.message,
+    required this.token,
+    this.suggestions = const <String>[],
+    required this.timestamp,
+  });
+}
+
+class FlutterWindDiagnosticsCollector {
+  final List<FlutterWindDiagnostic> _diagnostics = <FlutterWindDiagnostic>[];
+
+  List<FlutterWindDiagnostic> get diagnostics =>
+      List<FlutterWindDiagnostic>.unmodifiable(_diagnostics);
+
+  void clear() {
+    _diagnostics.clear();
+  }
+
+  void add(FlutterWindDiagnostic diagnostic) {
+    _diagnostics.add(diagnostic);
+    flutterWindDiagnosticsNotifier.value = diagnostics;
+  }
+}
+
+final ValueNotifier<List<FlutterWindDiagnostic>> flutterWindDiagnosticsNotifier =
+    ValueNotifier<List<FlutterWindDiagnostic>>(<FlutterWindDiagnostic>[]);
+
+List<String> suggestFlutterWindUtilities(String utility, {int maxResults = 3}) {
+  final query = utility.trim();
+  if (query.isEmpty) return const <String>[];
+  final candidates = <String>[
+    ...kFlutterWindSupportedExactUtilities,
+    ...kFlutterWindSupportedUtilityPrefixes,
+  ];
+  return _nearestMatches(query, candidates, maxResults: maxResults);
+}
+
+List<String> suggestFlutterWindVariants(String variant, {int maxResults = 3}) {
+  final query = variant.trim();
+  if (query.isEmpty) return const <String>[];
+  final candidates = <String>[
+    ...kFlutterWindSupportedVariants,
+    ...TailwindConfig.screens.keys,
+  ];
+  return _nearestMatches(query, candidates, maxResults: maxResults);
+}
+
+List<String> _nearestMatches(String query, List<String> candidates,
+    {int maxResults = 3}) {
+  final normalizedQuery = query.toLowerCase();
+  final scored = <MapEntry<String, int>>[];
+  final seen = <String>{};
+  for (final candidate in candidates) {
+    final key = candidate.toLowerCase();
+    if (!seen.add(key)) continue;
+    scored.add(MapEntry(candidate, _levenshteinDistance(normalizedQuery, key)));
+  }
+  scored.sort((a, b) {
+    final distanceCompare = a.value.compareTo(b.value);
+    if (distanceCompare != 0) return distanceCompare;
+    return a.key.compareTo(b.key);
+  });
+  return scored
+      .where((entry) => entry.value <= (query.length > 8 ? 5 : 3))
+      .take(maxResults)
+      .map((e) => e.key)
+      .toList();
+}
+
+int _levenshteinDistance(String a, String b) {
+  if (a == b) return 0;
+  if (a.isEmpty) return b.length;
+  if (b.isEmpty) return a.length;
+  final previous = List<int>.generate(b.length + 1, (i) => i);
+  final current = List<int>.filled(b.length + 1, 0);
+  for (var i = 1; i <= a.length; i++) {
+    current[0] = i;
+    for (var j = 1; j <= b.length; j++) {
+      final substitutionCost = a.codeUnitAt(i - 1) == b.codeUnitAt(j - 1) ? 0 : 1;
+      current[j] = [
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + substitutionCost,
+      ].reduce((min, value) => value < min ? value : min);
+    }
+    for (var j = 0; j <= b.length; j++) {
+      previous[j] = current[j];
+    }
+  }
+  return previous[b.length];
+}
+
+class _ParsedClassToken {
+  final List<String> variants;
+  final String utility;
+
+  const _ParsedClassToken({
+    required this.variants,
+    required this.utility,
+  });
+}
+
+class _ConditionalUtility {
+  final Set<_VariantState> requiredStates;
+  final Set<_VariantState> requiredGroupStates;
+  final Set<_VariantState> requiredPeerStates;
+  final String utility;
+
+  const _ConditionalUtility({
+    required this.requiredStates,
+    required this.requiredGroupStates,
+    required this.requiredPeerStates,
+    required this.utility,
+  });
+}
+
+class _StateScope extends InheritedNotifier<ValueNotifier<Set<_VariantState>>> {
+  const _StateScope({
+    required super.notifier,
+    required super.child,
+  });
+}
+
+class _GroupStateScope extends _StateScope {
+  const _GroupStateScope({required super.notifier, required super.child});
+
+  static ValueNotifier<Set<_VariantState>>? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<_GroupStateScope>()
+        ?.notifier;
+  }
+}
+
+class _PeerStateScope extends _StateScope {
+  const _PeerStateScope({required super.notifier, required super.child});
+
+  static ValueNotifier<Set<_VariantState>>? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<_PeerStateScope>()
+        ?.notifier;
+  }
+}
+
+class _GroupStateHost extends StatefulWidget {
+  final Widget child;
+
+  const _GroupStateHost({required this.child});
+
+  @override
+  State<_GroupStateHost> createState() => _GroupStateHostState();
+}
+
+class _GroupStateHostState extends State<_GroupStateHost> {
+  late final ValueNotifier<Set<_VariantState>> _states;
+  bool _isHovered = false;
+  bool _isFocused = false;
+  bool _isActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _states = ValueNotifier<Set<_VariantState>>(<_VariantState>{});
+  }
+
+  @override
+  void dispose() {
+    _states.dispose();
+    super.dispose();
+  }
+
+  void _updateStates() {
+    final next = <_VariantState>{};
+    if (_isHovered) next.add(_VariantState.hover);
+    if (_isFocused) next.add(_VariantState.focus);
+    if (_isActive) next.add(_VariantState.active);
+    _states.value = next;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _GroupStateScope(
+      notifier: _states,
+      child: FocusableActionDetector(
+        onFocusChange: (value) {
+          _isFocused = value;
+          _updateStates();
+        },
+        child: MouseRegion(
+          onEnter: (_) {
+            _isHovered = true;
+            _updateStates();
+          },
+          onExit: (_) {
+            _isHovered = false;
+            _updateStates();
+          },
+          child: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) {
+              _isActive = true;
+              _updateStates();
+            },
+            onPointerUp: (_) {
+              _isActive = false;
+              _updateStates();
+            },
+            onPointerCancel: (_) {
+              _isActive = false;
+              _updateStates();
+            },
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PeerStateHost extends StatefulWidget {
+  final Widget child;
+  final bool disabled;
+
+  const _PeerStateHost({required this.child, required this.disabled});
+
+  @override
+  State<_PeerStateHost> createState() => _PeerStateHostState();
+}
+
+class _PeerStateHostState extends State<_PeerStateHost> {
+  late final ValueNotifier<Set<_VariantState>> _states;
+  bool _isHovered = false;
+  bool _isFocused = false;
+  bool _isActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _states = ValueNotifier<Set<_VariantState>>(<_VariantState>{});
+  }
+
+  @override
+  void didUpdateWidget(covariant _PeerStateHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.disabled != widget.disabled) {
+      _updateStates();
+    }
+  }
+
+  @override
+  void dispose() {
+    _states.dispose();
+    super.dispose();
+  }
+
+  void _updateStates() {
+    final next = <_VariantState>{};
+    if (_isHovered) next.add(_VariantState.hover);
+    if (_isFocused) next.add(_VariantState.focus);
+    if (_isActive) next.add(_VariantState.active);
+    if (widget.disabled) next.add(_VariantState.disabled);
+    _states.value = next;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _PeerStateScope(
+      notifier: _states,
+      child: FocusableActionDetector(
+        onFocusChange: (value) {
+          _isFocused = value;
+          _updateStates();
+        },
+        child: MouseRegion(
+          onEnter: (_) {
+            _isHovered = true;
+            _updateStates();
+          },
+          onExit: (_) {
+            _isHovered = false;
+            _updateStates();
+          },
+          child: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) {
+              _isActive = true;
+              _updateStates();
+            },
+            onPointerUp: (_) {
+              _isActive = false;
+              _updateStates();
+            },
+            onPointerCancel: (_) {
+              _isActive = false;
+              _updateStates();
+            },
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InteractiveVariantWrapper extends StatefulWidget {
+  final Widget child;
+  final List<String> baseUtilities;
+  final List<_ConditionalUtility> conditionalUtilities;
+  final FlutterWindDiagnosticsCollector? diagnosticsCollector;
+
+  const _InteractiveVariantWrapper({
+    required this.child,
+    required this.baseUtilities,
+    required this.conditionalUtilities,
+    this.diagnosticsCollector,
+  });
+
+  @override
+  State<_InteractiveVariantWrapper> createState() =>
+      _InteractiveVariantWrapperState();
+}
+
+class _InteractiveVariantWrapperState extends State<_InteractiveVariantWrapper> {
+  bool _isHovered = false;
+  bool _isFocused = false;
+  bool _isFocusVisible = false;
+  bool _isActive = false;
+
+  Set<_VariantState> get _activeStates {
+    final states = <_VariantState>{};
+    if (_isHovered) states.add(_VariantState.hover);
+    if (_isFocused) states.add(_VariantState.focus);
+    if (_isFocusVisible) states.add(_VariantState.focusVisible);
+    if (_isActive) states.add(_VariantState.active);
+    return states;
+  }
+
+  List<String> _composeUtilities() {
+    final classes = <String>[...widget.baseUtilities];
+    final activeStates = _activeStates;
+    final groupStates = _GroupStateScope.maybeOf(context)?.value ?? <_VariantState>{};
+    final peerStates = _PeerStateScope.maybeOf(context)?.value ?? <_VariantState>{};
+    for (final conditional in widget.conditionalUtilities) {
+      if (!conditional.requiredGroupStates.every(groupStates.contains)) {
+        continue;
+      }
+      if (!conditional.requiredPeerStates.every(peerStates.contains)) {
+        continue;
+      }
+      if (conditional.requiredStates.every(activeStates.contains)) {
+        classes.add(conditional.utility);
+      }
+    }
+    return classes;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final built = _buildWidgetFromUtilities(
+      widget.child,
+      _composeUtilities(),
+      diagnosticsCollector: widget.diagnosticsCollector,
+    );
+    return FocusableActionDetector(
+      onFocusChange: (value) => setState(() => _isFocused = value),
+      onShowFocusHighlight: (value) =>
+          setState(() => _isFocusVisible = value),
+      mouseCursor: SystemMouseCursors.click,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTapDown: (_) => setState(() => _isActive = true),
+          onTapUp: (_) => setState(() => _isActive = false),
+          onTapCancel: () => setState(() => _isActive = false),
+          child: built,
+        ),
+      ),
+    );
+  }
+}
+
+List<String> tokenizeFlutterWindClasses(String classString) {
+  final tokens = <String>[];
+  final buffer = StringBuffer();
+  var bracketDepth = 0;
+  var parenDepth = 0;
+
+  for (final rune in classString.runes) {
+    final ch = String.fromCharCode(rune);
+    if (ch == '[') {
+      bracketDepth++;
+      buffer.write(ch);
+      continue;
+    }
+    if (ch == ']') {
+      if (bracketDepth > 0) bracketDepth--;
+      buffer.write(ch);
+      continue;
+    }
+    if (ch == '(') {
+      parenDepth++;
+      buffer.write(ch);
+      continue;
+    }
+    if (ch == ')') {
+      if (parenDepth > 0) parenDepth--;
+      buffer.write(ch);
+      continue;
+    }
+
+    final isWhitespace = ch.trim().isEmpty;
+    if (isWhitespace && bracketDepth == 0 && parenDepth == 0) {
+      final token = buffer.toString().trim();
+      if (token.isNotEmpty) tokens.add(token);
+      buffer.clear();
+      continue;
+    }
+    buffer.write(ch);
+  }
+
+  final trailing = buffer.toString().trim();
+  if (trailing.isNotEmpty) {
+    tokens.add(trailing);
+  }
+  return tokens;
+}
+
+_ParsedClassToken? _parseClassToken(String token) {
+  final clean = token.trim();
+  if (clean.isEmpty) return null;
+
+  final segments = <String>[];
+  final buffer = StringBuffer();
+  var bracketDepth = 0;
+  var parenDepth = 0;
+
+  for (final rune in clean.runes) {
+    final ch = String.fromCharCode(rune);
+    if (ch == '[') {
+      bracketDepth++;
+      buffer.write(ch);
+      continue;
+    }
+    if (ch == ']') {
+      if (bracketDepth > 0) bracketDepth--;
+      buffer.write(ch);
+      continue;
+    }
+    if (ch == '(') {
+      parenDepth++;
+      buffer.write(ch);
+      continue;
+    }
+    if (ch == ')') {
+      if (parenDepth > 0) parenDepth--;
+      buffer.write(ch);
+      continue;
+    }
+
+    if (ch == ':' && bracketDepth == 0 && parenDepth == 0) {
+      segments.add(buffer.toString());
+      buffer.clear();
+      continue;
+    }
+    buffer.write(ch);
+  }
+  segments.add(buffer.toString());
+
+  if (segments.isEmpty) return null;
+  final utility = segments.last.trim();
+  if (utility.isEmpty) return null;
+
+  return _ParsedClassToken(
+    variants: segments.take(segments.length - 1).map((v) => v.trim()).toList(),
+    utility: utility,
+  );
+}
+
+bool _matchesStaticVariants(List<String> variants, BuildContext? context) {
+  if (variants.isEmpty) return true;
+
+  final screens = TailwindConfig.screens;
+  for (final variant in variants) {
+    if (variant == 'dark') {
+      if (context == null ||
+          Theme.of(context).brightness != Brightness.dark) {
+        return false;
+      }
+      continue;
+    }
+    if (variant == 'light') {
+      if (context == null ||
+          Theme.of(context).brightness != Brightness.light) {
+        return false;
+      }
+      continue;
+    }
+    if (variant == 'disabled' || variant == 'input-disabled') {
+      continue;
+    }
+    if (variant == 'group-hover' ||
+        variant == 'group-focus' ||
+        variant == 'group-active' ||
+        variant == 'peer-hover' ||
+        variant == 'peer-focus' ||
+        variant == 'peer-active' ||
+        variant == 'peer-disabled') {
+      continue;
+    }
+    if (screens.containsKey(variant)) {
+      if (context == null) return false;
+      final width = MediaQuery.of(context).size.width;
+      if (width < (screens[variant] ?? double.infinity)) {
+        return false;
+      }
+      continue;
+    }
+  }
+  return true;
+}
+
+Set<_VariantState> _extractStateVariants(List<String> variants) {
+  final states = <_VariantState>{};
+  for (final variant in variants) {
+    switch (variant) {
+      case 'hover':
+      case 'input-hover':
+        states.add(_VariantState.hover);
+        break;
+      case 'focus':
+      case 'input-focus':
+        states.add(_VariantState.focus);
+        break;
+      case 'focus-visible':
+      case 'input-focus-visible':
+        states.add(_VariantState.focusVisible);
+        break;
+      case 'active':
+      case 'input-active':
+        states.add(_VariantState.active);
+        break;
+    }
+  }
+  return states;
+}
+
+Set<_VariantState> _extractGroupStateVariants(List<String> variants) {
+  final states = <_VariantState>{};
+  for (final variant in variants) {
+    switch (variant) {
+      case 'group-hover':
+        states.add(_VariantState.hover);
+        break;
+      case 'group-focus':
+        states.add(_VariantState.focus);
+        break;
+      case 'group-active':
+        states.add(_VariantState.active);
+        break;
+    }
+  }
+  return states;
+}
+
+Set<_VariantState> _extractPeerStateVariants(List<String> variants) {
+  final states = <_VariantState>{};
+  for (final variant in variants) {
+    switch (variant) {
+      case 'peer-hover':
+        states.add(_VariantState.hover);
+        break;
+      case 'peer-focus':
+        states.add(_VariantState.focus);
+        break;
+      case 'peer-active':
+        states.add(_VariantState.active);
+        break;
+      case 'peer-disabled':
+        states.add(_VariantState.disabled);
+        break;
+    }
+  }
+  return states;
+}
+
+bool isSupportedFlutterWindVariant(String variant) {
+  return kFlutterWindSupportedVariants.contains(variant) ||
+      TailwindConfig.screens.containsKey(variant);
+}
+
+bool isLikelySupportedFlutterWindUtility(String cls) {
+  final normalized = cls.trim();
+  return kFlutterWindSupportedExactUtilities.contains(normalized) ||
+      kFlutterWindSupportedUtilityPrefixes.any(normalized.startsWith);
+}
+
+void _warnUnsupportedUtility(String cls) {
+  if (!kDebugMode) return;
+  if (isLikelySupportedFlutterWindUtility(cls)) return;
+  final suggestions = suggestFlutterWindUtilities(cls, maxResults: 2);
+  final suffix = suggestions.isEmpty
+      ? ''
+      : ' Did you mean: ${suggestions.join(', ')}?';
+  debugPrint(
+      'FlutterWind: unsupported utility "$cls" (ignored in runtime parser).$suffix');
+}
+
+void _emitDiagnostic({
+  required FlutterWindDiagnosticSeverity severity,
+  required String code,
+  required String token,
+  required String message,
+  List<String> suggestions = const <String>[],
+  FlutterWindDiagnosticsCollector? collector,
+}) {
+  final diagnostic = FlutterWindDiagnostic(
+    severity: severity,
+    code: code,
+    token: token,
+    message: message,
+    suggestions: suggestions,
+    timestamp: DateTime.now(),
+  );
+  collector?.add(diagnostic);
+  final merged = <FlutterWindDiagnostic>[...flutterWindDiagnosticsNotifier.value, diagnostic];
+  flutterWindDiagnosticsNotifier.value =
+      merged.length > 300 ? merged.sublist(merged.length - 300) : merged;
+}
+
+Widget _buildWidgetFromUtilities(
+  Widget widget,
+  List<String> utilityClasses, {
+  FlutterWindDiagnosticsCollector? diagnosticsCollector,
+}) {
   final style = FlutterWindStyle();
-  final isTextWidget = widget is Text;
-  final isInputWidget = widget is TextField || widget is TextFormField;
 
-  // Pre-allocate lists with estimated capacity
-  final baseClasses = <String>[];
-  final hoverClasses = <String>[];
-  final darkClasses = <String>[];
-
-  // Single pass classification of classes
-  for (final cls in classes) {
-    if (cls.startsWith('hover:')) {
-      hoverClasses.add(cls.substring(6));
-    } else if (cls.startsWith('dark:')) {
-      darkClasses.add(cls.substring(5));
-    } else {
-      baseClasses.add(cls);
-    }
-  }
-
-  // Resolve responsive classes only if context is available
-  final resolvedBaseClasses = context != null
-      ? resolveFlutterWindResponsiveClasses(baseClasses, context)
-      : baseClasses;
-
-  final resolvedHoverClasses = context != null && hoverClasses.isNotEmpty
-      ? resolveFlutterWindResponsiveClasses(hoverClasses, context)
-      : hoverClasses;
-
-  final resolvedDarkClasses = context != null && darkClasses.isNotEmpty
-      ? resolveFlutterWindResponsiveClasses(darkClasses, context)
-      : darkClasses;
-
-  // Apply base styles
-  for (final cls in resolvedBaseClasses) {
+  for (final cls in utilityClasses) {
     applyClassToStyle(cls, style);
-  }
-
-  // Apply dark mode styles if active
-  if (context != null &&
-      Theme.of(context).brightness == Brightness.dark &&
-      resolvedDarkClasses.isNotEmpty) {
-    for (final cls in resolvedDarkClasses) {
-      applyClassToStyle(cls, style);
+    if (!isLikelySupportedFlutterWindUtility(cls)) {
+      final suggestions = suggestFlutterWindUtilities(cls, maxResults: 3);
+      _emitDiagnostic(
+        severity: FlutterWindDiagnosticSeverity.warning,
+        code: 'unsupported_utility',
+        token: cls,
+        message: 'Unsupported utility ignored at runtime.',
+        suggestions: suggestions,
+        collector: diagnosticsCollector,
+      );
     }
+    _warnUnsupportedUtility(cls);
   }
 
   Widget builtWidget;
-
-  // Handle Text widget with optimized style application
-  if (isTextWidget) {
-    final textWidget = widget as Text;
+  if (widget is Text) {
+    final textWidget = widget;
     String text = textWidget.data ?? '';
 
-    // Apply text transformation if needed
     if (style.textTransform != null) {
       text = _applyTextTransform(text, style.textTransform!);
     }
 
-    // Create optimized TextStyle
     final textStyle = _createOptimizedTextStyle(textWidget.style, style);
-
-    // Create appropriate text widget based on selection behavior
     builtWidget = style.textSelection != null &&
             style.textSelection != TextSelectionBehavior.none
         ? _createSelectableText(text, textStyle, textWidget, style)
         : _createTextWidget(text, textStyle, textWidget, style);
 
-    // Handle ellipsis overflow
     if (style.textOverflow == TextOverflow.ellipsis) {
       builtWidget = SizedBox(width: double.infinity, child: builtWidget);
     }
+    return style.build(builtWidget);
   }
-  // Handle Input widget with optimized style application
-  else if (isInputWidget) {
-    if (widget is TextField) {
-      builtWidget = _createStyledTextField(widget as TextField, style);
-    } else {
-      builtWidget = _createStyledTextFormField(widget as TextFormField, style);
+
+  if (widget is TextField) {
+    final input = _createStyledTextField(widget, style);
+    return style.build(input);
+  }
+  if (widget is TextFormField) {
+    final input = _createStyledTextFormField(widget, style);
+    return style.build(input);
+  }
+
+  return style.build(widget);
+}
+
+/// Parses and applies Tailwind-like classes to a widget.
+Widget applyFlutterWind(Widget widget, List<String> classes,
+    [BuildContext? context, FlutterWindDiagnosticsCollector? diagnosticsCollector]) {
+  final baseUtilities = <String>[];
+  final conditionalUtilities = <_ConditionalUtility>[];
+  var isGroupHost = false;
+  var isPeerHost = false;
+  var isPeerDisabled = false;
+
+  for (final token in classes) {
+    final parsed = _parseClassToken(token);
+    if (parsed == null) continue;
+
+    var hasUnsupportedVariant = false;
+    for (final variant in parsed.variants) {
+      if (!isSupportedFlutterWindVariant(variant)) {
+        hasUnsupportedVariant = true;
+        final suggestions = suggestFlutterWindVariants(variant, maxResults: 2);
+        _emitDiagnostic(
+          severity: FlutterWindDiagnosticSeverity.warning,
+          code: 'unsupported_variant',
+          token: variant,
+          message: 'Unsupported variant ignored at runtime.',
+          suggestions: suggestions,
+          collector: diagnosticsCollector,
+        );
+        if (kDebugMode) {
+          final suffix = suggestions.isEmpty
+              ? ''
+              : ' Did you mean: ${suggestions.join(', ')}?';
+          debugPrint(
+              'FlutterWind: unsupported variant "$variant" in "$token" (ignored).$suffix');
+        }
+      }
     }
-  } else {
-    builtWidget = style.build(widget);
+    if (hasUnsupportedVariant) {
+      continue;
+    }
+
+    if (!_matchesStaticVariants(parsed.variants, context)) {
+      continue;
+    }
+
+    final requiresDisabledState = parsed.variants.contains('disabled') ||
+        parsed.variants.contains('input-disabled');
+    if (requiresDisabledState) {
+      if (widget is! TextField && widget is! TextFormField) {
+        continue;
+      }
+      final isEnabled = widget is TextField
+          ? (widget.enabled ?? true)
+          : (widget as TextFormField).enabled;
+      if (isEnabled) {
+        continue;
+      }
+    }
+
+    var resolvedUtility = parsed.utility;
+    if ((parsed.variants.contains('disabled') ||
+            parsed.variants.contains('input-disabled')) &&
+        resolvedUtility == 'opacity') {
+      // Support shorthand from examples/docs: input-disabled:opacity
+      resolvedUtility = 'opacity-50';
+    }
+    if (resolvedUtility == 'group') {
+      isGroupHost = true;
+      continue;
+    }
+    if (resolvedUtility == 'peer') {
+      isPeerHost = true;
+      if (widget is TextField) {
+        isPeerDisabled = !(widget.enabled ?? true);
+      } else if (widget is TextFormField) {
+        isPeerDisabled = !widget.enabled;
+      }
+      continue;
+    }
+
+    final stateVariants = _extractStateVariants(parsed.variants);
+    final groupStateVariants = _extractGroupStateVariants(parsed.variants);
+    final peerStateVariants = _extractPeerStateVariants(parsed.variants);
+    if (stateVariants.isEmpty &&
+        groupStateVariants.isEmpty &&
+        peerStateVariants.isEmpty) {
+      baseUtilities.add(resolvedUtility);
+    } else {
+      conditionalUtilities.add(
+        _ConditionalUtility(
+          requiredStates: stateVariants,
+          requiredGroupStates: groupStateVariants,
+          requiredPeerStates: peerStateVariants,
+          utility: resolvedUtility,
+        ),
+      );
+    }
   }
 
-  // Apply hover effects if needed
-  if (resolvedHoverClasses.isNotEmpty && context != null) {
-    final baseClassesWithDark =
-        Theme.of(context).brightness == Brightness.dark &&
-                resolvedDarkClasses.isNotEmpty
-            ? [...baseClasses, ...darkClasses]
-            : baseClasses;
-
-    return HoverDetector(
-      baseClasses: baseClassesWithDark,
-      hoverClasses: hoverClasses,
-      context: context,
-      child: widget,
+  if (conditionalUtilities.isEmpty) {
+    Widget built = _buildWidgetFromUtilities(
+      widget,
+      baseUtilities,
+      diagnosticsCollector: diagnosticsCollector,
     );
+    if (isGroupHost) {
+      built = _GroupStateHost(child: built);
+    }
+    if (isPeerHost) {
+      built = _PeerStateHost(child: built, disabled: isPeerDisabled);
+    }
+    return built;
   }
 
-  return builtWidget;
+  Widget built = _InteractiveVariantWrapper(
+    child: widget,
+    baseUtilities: baseUtilities,
+    conditionalUtilities: conditionalUtilities,
+    diagnosticsCollector: diagnosticsCollector,
+  );
+  if (isGroupHost) {
+    built = _GroupStateHost(child: built);
+  }
+  if (isPeerHost) {
+    built = _PeerStateHost(child: built, disabled: isPeerDisabled);
+  }
+  return built;
 }
 
 // Helper function to apply text transformation
@@ -843,24 +1707,166 @@ Widget _createTextWidget(String text, TextStyle textStyle, Text originalWidget,
 
 // Helper function to apply a single class to a style
 void applyClassToStyle(String cls, FlutterWindStyle style) {
-  Spacings.apply(cls, style);
-  ColorsClass.apply(cls, style);
-  TypographyClass.apply(cls, style);
-  BordersClass.apply(cls, style);
-  OpacityClass.apply(cls, style);
-  ShadowsClass.apply(cls, style);
-  SizingClass.apply(cls, style);
-  AspectRatioClass.apply(cls, style);
-  AnimationsClass.apply(cls, style);
-  PositionClass.apply(cls, style);
-  AnimationPresets.apply(cls, style);
-  FilterEffects.apply(cls, style);
-  TransformUtils.apply(cls, style);
-  BackgroundClass.apply(cls, style);
-  TextEffects.apply(cls, style);
-  AccessibilityClass.apply(cls, style);
-  PerformanceClass.apply(cls, style);
-  InputClass.apply(cls, style);
+  final preset = ComponentPresetRegistry.getPreset(cls);
+  if (preset != null) {
+    final expanded = tokenizeFlutterWindClasses(preset);
+    for (final token in expanded) {
+      applyClassToStyle(token, style);
+    }
+    return;
+  }
+
+  _ensureDefaultClassHandlersRegistered();
+  for (final handler in FlutterWindClassHandlerRegistry.handlers) {
+    handler.apply(cls, style);
+  }
+}
+
+void registerFlutterWindClassHandler(FlutterWindClassHandler handler) {
+  FlutterWindClassHandlerRegistry.register(handler);
+}
+
+bool _didRegisterDefaultClassHandlers = false;
+
+void _ensureDefaultClassHandlersRegistered() {
+  if (_didRegisterDefaultClassHandlers &&
+      FlutterWindClassHandlerRegistry.isEmpty == false) {
+    return;
+  }
+  _didRegisterDefaultClassHandlers = true;
+
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'spacing',
+      order: 10,
+      apply: (cls, style) => Spacings.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'colors',
+      order: 20,
+      apply: (cls, style) => ColorsClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'typography',
+      order: 30,
+      apply: (cls, style) =>
+          TypographyClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'borders',
+      order: 40,
+      apply: (cls, style) => BordersClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'opacity',
+      order: 50,
+      apply: (cls, style) => OpacityClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'shadows',
+      order: 60,
+      apply: (cls, style) => ShadowsClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'sizing',
+      order: 70,
+      apply: (cls, style) => SizingClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'aspect_ratio',
+      order: 80,
+      apply: (cls, style) =>
+          AspectRatioClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'animations',
+      order: 90,
+      apply: (cls, style) =>
+          AnimationsClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'position',
+      order: 100,
+      apply: (cls, style) => PositionClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'animation_presets',
+      order: 110,
+      apply: (cls, style) =>
+          AnimationPresets.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'filters',
+      order: 120,
+      apply: (cls, style) => FilterEffects.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'transforms',
+      order: 130,
+      apply: (cls, style) => TransformUtils.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'background',
+      order: 140,
+      apply: (cls, style) => BackgroundClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'text_effects',
+      order: 150,
+      apply: (cls, style) => TextEffects.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'accessibility',
+      order: 160,
+      apply: (cls, style) =>
+          AccessibilityClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'performance',
+      order: 170,
+      apply: (cls, style) =>
+          PerformanceClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
+  FlutterWindClassHandlerRegistry.register(
+    FlutterWindClassHandler(
+      name: 'input',
+      order: 180,
+      apply: (cls, style) => InputClass.apply(cls, style as FlutterWindStyle),
+    ),
+  );
 }
 
 // Helper function to create styled TextField
@@ -948,8 +1954,6 @@ Widget _createStyledTextField(TextField textField, FlutterWindStyle style) {
 // Helper function to create styled TextFormField
 Widget _createStyledTextFormField(
     TextFormField textFormField, FlutterWindStyle style) {
-  // Create a new InputDecoration with the styled properties
-  print("border :: ${style.inputBorder}");
   final decoration = InputDecoration(
     border: style.inputBorder,
     contentPadding: style.inputPadding,

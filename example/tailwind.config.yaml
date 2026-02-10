@@ -1,13 +1,44 @@
+theme:
+  tokens:
+    light:
+      surface: "#ffffff"
+      surface-foreground: "#111827"
+      muted: "#f3f4f6"
+      muted-foreground: "#6b7280"
+      primary: "#3b82f6"
+      primary-foreground: "#ffffff"
+      danger: "#ef4444"
+      danger-foreground: "#ffffff"
+    dark:
+      surface: "#111827"
+      surface-foreground: "#f9fafb"
+      muted: "#1f2937"
+      muted-foreground: "#9ca3af"
+      primary: "#60a5fa"
+      primary-foreground: "#111827"
+      danger: "#f87171"
+      danger-foreground: "#111827"
+  container:
+    center: true
+    padding: "2rem"
+    screens:
+      sm: "640px"
+      md: "768px"
+      lg: "1024px"
+      xl: "1280px"
+      "2xl": "1536px"
 screens:
-  sm: "640px"
-  md: "768px"
-  lg: "1024px"
-  xl: "1280px"
-  2xl: "1536px"
-colors:
-  primary: "#3490dc"
-  secondary: "#ffed4a"
-  danger: "#e3342f"
-  success: "#38c172"
-  warning: "#ffed4a"
-  info: "#6cb2eb"
+  sm: 640
+  md: 768
+  lg: 1024
+  xl: 1280
+  2xl: 1536
+semanticColors:
+  surface: "#ffffff"
+  surface-foreground: "#111827"
+  muted: "#f3f4f6"
+  muted-foreground: "#6b7280"
+  primary: "#3b82f6"
+  primary-foreground: "#ffffff"
+  danger: "#ef4444"
+  danger-foreground: "#ffffff"

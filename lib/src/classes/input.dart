@@ -7,9 +7,32 @@ import 'package:flutterwind_core/src/config/tailwind_config.dart';
 
 class InputClass {
   static void apply(String className, FlutterWindStyle style) {
+    // Aliases used in docs/examples for border styles
+    if (className == 'input-none') {
+      _applyBorderStyle('none', style);
+      return;
+    }
+    if (className == 'input-outline') {
+      _applyBorderStyle('outline', style);
+      return;
+    }
+    if (className == 'input-underline') {
+      _applyBorderStyle('underline', style);
+      return;
+    }
+
     // Background colors
     if (className.startsWith('bg-')) {
       ColorsClass.apply(className, style);
+    }
+    // Ring style (typically used with focus/input-focus variants)
+    else if (className.startsWith('ring-')) {
+      final color = className.substring(5);
+      final ringColor = _parseColor(color);
+      if (ringColor != null) {
+        style.inputFocusColor = ringColor;
+        style.inputFocusWidth = 2.0;
+      }
     }
     // Border styles
     else if (className.startsWith('border-')) {

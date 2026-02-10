@@ -2,6 +2,7 @@ import 'package:example/filter_effects_example.dart';
 import 'package:example/input_examples.dart';
 import 'package:example/interactive_transform_demo.dart';
 import 'package:example/transform_examples.dart';
+import 'package:example/all_classes_showcase.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterwind_core/flutterwind.dart';
 import 'typography_examples.dart';
@@ -45,6 +46,7 @@ class _MyAppState extends State<MyApp> {
   // Secret gesture counter
   int _tapCount = 0;
   DateTime? _lastTapTime;
+  ThemeMode _themeMode = ThemeMode.dark;
 
   void _handleSecretGesture(BuildContext context) {
     final now = DateTime.now();
@@ -69,14 +71,17 @@ class _MyAppState extends State<MyApp> {
       await prefs.setBool('devToolsEnabled', devToolsEnabled.value);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Developer Tools ${devToolsEnabled.value ? 'Enabled' : 'Disabled'}',
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                'Developer Tools ${devToolsEnabled.value ? 'Enabled' : 'Disabled'}',
+              ),
+              duration: const Duration(seconds: 2),
             ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       debugPrint('Failed to save developer tools state: $e');
@@ -107,8 +112,18 @@ class _MyAppState extends State<MyApp> {
               useMaterial3: true,
               brightness: Brightness.dark,
             ),
-            themeMode: ThemeMode.light,
-            home: const ExamplesHome(),
+            themeMode: _themeMode,
+            home: ExamplesHome(
+              themeMode: _themeMode,
+              onToggleTheme: () {
+                setState(() {
+                  _themeMode = _themeMode == ThemeMode.dark
+                      ? ThemeMode.light
+                      : ThemeMode.dark;
+                });
+              },
+              onToggleDevTools: (ctx) => _toggleDevTools(ctx),
+            ),
           ),
         );
       },
@@ -117,13 +132,51 @@ class _MyAppState extends State<MyApp> {
 }
 
 class ExamplesHome extends StatelessWidget {
-  const ExamplesHome({super.key});
+  final ThemeMode themeMode;
+  final VoidCallback onToggleTheme;
+  final ValueChanged<BuildContext> onToggleDevTools;
+
+  const ExamplesHome({
+    super.key,
+    required this.themeMode,
+    required this.onToggleTheme,
+    required this.onToggleDevTools,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('FlutterWind Examples'),
+        actions: [
+          ValueListenableBuilder<bool>(
+            valueListenable: devToolsEnabled,
+            builder: (context, enabled, child) {
+              return IconButton(
+                tooltip: enabled
+                    ? 'Hide Developer Tools'
+                    : 'Show Developer Tools',
+                onPressed: () => onToggleDevTools(context),
+                icon: Icon(
+                  enabled
+                      ? Icons.bug_report
+                      : Icons.bug_report_outlined,
+                ),
+              );
+            },
+          ),
+          IconButton(
+            tooltip: themeMode == ThemeMode.dark
+                ? 'Switch to light mode'
+                : 'Switch to dark mode',
+            onPressed: onToggleTheme,
+            icon: Icon(
+              themeMode == ThemeMode.dark
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+            ),
+          ),
+        ],
       ),
       body: ListView.builder(
         itemCount: _examples.length,
@@ -158,6 +211,11 @@ class Example {
 }
 
 final List<Example> _examples = [
+  const Example(
+    title: 'All Classes Showcase',
+    description: 'Comprehensive utility and variant coverage in one page',
+    page: AllClassesShowcase(),
+  ),
   const Example(
     title: 'Typography',
     description: 'Text styling, effects, and formatting examples',

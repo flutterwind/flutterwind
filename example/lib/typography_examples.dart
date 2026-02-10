@@ -18,7 +18,7 @@ class TypographyExamples extends StatelessWidget {
             Column(
               children: [
                 Text('Hello World').className(
-                    'text-xl font-bold text-red-500 text-center uppercase'),
+                    'text-xl font-bold text-red-500 text-center uppercase dark:text-blue-500'),
                 Text('Hello World').className('text-shadow-sm'),
                 const SizedBox(height: 8),
                 Text('Hello World').className('tracking-wide'),

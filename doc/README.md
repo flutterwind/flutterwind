@@ -10,6 +10,11 @@ FlutterWind is a utility-first styling framework for Flutter, inspired by Tailwi
 
 - [Configuration System](./configuration.md) - Learn how to customize FlutterWind to match your design system
 - [Responsive Design](./responsive_design.md) - Create layouts that adapt to different screen sizes
+- [Tailwind v4 Runtime Parity](./tailwind_v4_runtime_parity.md) - Runtime parser semantics and support matrix
+- [Generated Support Matrix](./generated_support_matrix.md) - Auto-generated list of supported runtime variants and utility patterns
+- [API Stability and SemVer Policy](./api_stability_and_semver.md) - Stable/experimental contracts and deprecation process
+- [Plugin SDK](./plugin_sdk.md) - Build custom utility and preset plugins
+- [Performance Benchmarks](./performance_benchmarks.md) - Local parser/variant benchmark workflow
 
 ### Layout
 
@@ -78,3 +83,20 @@ See the [Configuration System](./configuration.md) documentation for more detail
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## API Contract
+
+The supported public API surface is `package:flutterwind_core/flutterwind.dart`.
+Anything not exported there should be treated as internal/unstable unless explicitly documented.
+
+## CLI Utilities
+
+Use the bundled CLI to validate class strings and regenerate support docs:
+
+```bash
+flutter pub run flutterwind_core validate --path lib --fail-on-error
+flutter pub run flutterwind_core matrix --out doc/generated_support_matrix.md
+flutter test test/benchmarks/parser_benchmark.dart
+flutter test test/benchmarks/variant_benchmark.dart
+flutter test test/golden_widget_parity_test.dart --update-goldens
+```

@@ -82,5 +82,53 @@
   * Added support for absolute, fixed, sticky positioning
   * Implemented inset controls (top, right, bottom, left)
 
+## 0.0.7
+* Added FlutterWind widget for app configuration:
+  * Configurable loading screen
+  * Developer tools integration
+  * Theme and locale support
+  * Media query handling
+* Added developer tools features:
+  * FPS counter
+  * Memory usage monitor 
+  * Build time tracking
+  * Configurable background and text colors
+* Improved configuration loading:
+  * Asynchronous config loading
+  * Error handling with logging
+  * Loading state management
+* Enhanced app initialization:
+  * Support for custom routes
+  * Initial route configuration
+  * Route generation handling
+  * Restoration scope support
+* Added support for:
+  * Custom shortcuts and actions
+  * Scroll behavior configuration
+  * Inherited media query control
+  * Multiple locales
 
+## 0.0.8
 
+* Added plugin SDK foundations:
+  * `FlutterWindClassHandler` + ordered handler registry.
+  * Public utility handler registration API.
+  * Preset registration/unregistration APIs.
+* Added theme tokens v2 support:
+  * Light/dark token sets via `theme.tokens`.
+  * Brightness-aware semantic token resolution.
+* Expanded runtime variants:
+  * `group-focus`, `group-active`
+  * `peer-hover`, `peer-focus`, `peer-active`, `peer-disabled`
+* Added diagnostics mode plumbing:
+  * Structured parser diagnostics model/collector.
+  * Diagnostics panel integration in developer tools.
+* Added benchmark harness:
+  * Parser and variant benchmark tests.
+  * Performance benchmark documentation.
+* Added golden baseline automation:
+  * Enabled and stabilized golden parity test.
+  * Added baseline golden asset.
+* Improved CLI:
+  * `init` now generates token-v2-friendly `tailwind.config.yaml`.
+  * CLI now runs as pure-Dart entrypoint for reliable execution.

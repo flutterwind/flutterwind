@@ -10,6 +10,14 @@ class Spacings {
       _setPadding(cls.substring(3), style, horizontal: true);
     } else if (cls.startsWith('py-')) {
       _setPadding(cls.substring(3), style, vertical: true);
+    } else if (cls.startsWith('pt-')) {
+      _setPadding(cls.substring(3), style, top: true);
+    } else if (cls.startsWith('pb-')) {
+      _setPadding(cls.substring(3), style, bottom: true);
+    } else if (cls.startsWith('pl-')) {
+      _setPadding(cls.substring(3), style, left: true);
+    } else if (cls.startsWith('pr-')) {
+      _setPadding(cls.substring(3), style, right: true);
     } else if (cls.startsWith('ps-')) {
       _setPadding(cls.substring(3), style, start: true);
     } else if (cls.startsWith('pe-')) {
@@ -20,6 +28,14 @@ class Spacings {
       _setMargin(cls.substring(3), style, horizontal: true);
     } else if (cls.startsWith('my-')) {
       _setMargin(cls.substring(3), style, vertical: true);
+    } else if (cls.startsWith('mt-')) {
+      _setMargin(cls.substring(3), style, top: true);
+    } else if (cls.startsWith('mb-')) {
+      _setMargin(cls.substring(3), style, bottom: true);
+    } else if (cls.startsWith('ml-')) {
+      _setMargin(cls.substring(3), style, left: true);
+    } else if (cls.startsWith('mr-')) {
+      _setMargin(cls.substring(3), style, right: true);
     } else if (cls.startsWith('ms-')) {
       _setMargin(cls.substring(3), style, start: true);
     } else if (cls.startsWith('me-')) {
@@ -31,6 +47,10 @@ class Spacings {
       {bool all = false,
       bool horizontal = false,
       bool vertical = false,
+      bool top = false,
+      bool bottom = false,
+      bool left = false,
+      bool right = false,
       bool start = false,
       bool end = false}) {
     double? spacing = _parseSpacing(value);
@@ -38,10 +58,11 @@ class Spacings {
 
     EdgeInsets currentPadding = style.padding ?? EdgeInsets.zero;
     style.padding = EdgeInsets.only(
-      left: start || horizontal || all ? spacing : currentPadding.left,
-      right: end || horizontal || all ? spacing : currentPadding.right,
-      top: vertical || all ? spacing : currentPadding.top,
-      bottom: vertical || all ? spacing : currentPadding.bottom,
+      left: left || start || horizontal || all ? spacing : currentPadding.left,
+      right:
+          right || end || horizontal || all ? spacing : currentPadding.right,
+      top: top || vertical || all ? spacing : currentPadding.top,
+      bottom: bottom || vertical || all ? spacing : currentPadding.bottom,
     );
   }
 
@@ -49,6 +70,10 @@ class Spacings {
       {bool all = false,
       bool horizontal = false,
       bool vertical = false,
+      bool top = false,
+      bool bottom = false,
+      bool left = false,
+      bool right = false,
       bool start = false,
       bool end = false}) {
     double? spacing = _parseSpacing(value);
@@ -56,10 +81,10 @@ class Spacings {
 
     EdgeInsets currentMargin = style.margin ?? EdgeInsets.zero;
     style.margin = EdgeInsets.only(
-      left: start || horizontal || all ? spacing : currentMargin.left,
-      right: end || horizontal || all ? spacing : currentMargin.right,
-      top: vertical || all ? spacing : currentMargin.top,
-      bottom: vertical || all ? spacing : currentMargin.bottom,
+      left: left || start || horizontal || all ? spacing : currentMargin.left,
+      right: right || end || horizontal || all ? spacing : currentMargin.right,
+      top: top || vertical || all ? spacing : currentMargin.top,
+      bottom: bottom || vertical || all ? spacing : currentMargin.bottom,
     );
   }
 
