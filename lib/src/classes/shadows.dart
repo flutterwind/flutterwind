@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutterwind_core/src/utils/parser.dart';
+import 'package:flutterwind_core/src/config/tailwind_config.dart';
+import 'package:flutterwind_core/src/classes/colors.dart'; // For base colors if needed, or just map manually
 
 class ShadowsClass {
-  static const Map<String, List<BoxShadow>> shadowScale = {
+  static Map<String, List<BoxShadow>> shadowScale = {
     'shadow-2xs': [
-      BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 0.5))
+      BoxShadow(
+          color: Colors.black.withValues(alpha: 0.02),
+          blurRadius: 1,
+          offset: Offset(0, 1))
     ],
     'shadow-xs': [
-      BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1))
+      BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 2,
+          offset: Offset(0, 1))
     ],
     'shadow-sm': [
-      BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+      BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 2,
+          offset: Offset(0, 1))
     ],
     'shadow-md': [
       BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 4))
@@ -106,23 +117,38 @@ class ShadowsClass {
         // Optionally, set a default ring color if not already set.
         style.ringColor ??= Colors.black;
         style.ringWidth = ring.spreadRadius;
-      } else if (cls.startsWith('ring-') && cls.contains('red') ||
-          cls.contains('blue') ||
-          cls.contains('green') ||
-          cls.contains('black') ||
-          cls.contains('white')) {
-        // For ring color classes such as "ring-red-500", you would map these to a color.
-        // For brevity, here’s a basic example:
-        if (cls.startsWith('ring-red-')) {
-          style.ringColor = Colors.red;
-        } else if (cls.startsWith('ring-blue-')) {
-          style.ringColor = Colors.blue;
-        } else if (cls.startsWith('ring-green-')) {
-          style.ringColor = Colors.green;
-        } else if (cls == 'ring-black') {
-          style.ringColor = Colors.black;
-        } else if (cls == 'ring-white') {
-          style.ringColor = Colors.white;
+      } else {
+        // Try parsing as color
+        final value = cls.substring(5); // remove 'ring-'
+        Color? color = ColorsClass.parseColor(value);
+        if (color != null) {
+          style.ringColor = color;
+        }
+      }
+    } else if (cls.startsWith('ring-offset-')) {
+      final value = cls.substring('ring-offset-'.length);
+      // Simple width check
+      final size = double.tryParse(value);
+      if (size != null) {
+        style.ringOffsetWidth = size;
+      } else if (value.startsWith('[') && value.endsWith(']')) {
+        // Arbitrary color or width
+        final inner = value.substring(1, value.length - 1);
+        // Check if it's a px value (width)
+        if (inner.endsWith('px') || double.tryParse(inner) != null) {
+          final w = double.tryParse(inner.replaceAll('px', ''));
+          if (w != null) style.ringOffsetWidth = w;
+        } else {
+          // Assume color
+          Color? color =
+              ColorsClass.parseColor(value); // pass full value '[...]'
+          if (color != null) style.ringOffsetColor = color;
+        }
+      } else {
+        // Try parsing as color
+        Color? color = ColorsClass.parseColor(value);
+        if (color != null) {
+          style.ringOffsetColor = color;
         }
       }
     }

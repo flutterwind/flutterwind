@@ -90,6 +90,9 @@ class BackgroundClass {
         _applyBackgroundClip(value.substring(5), style);
       } else if (value.startsWith('opacity-')) {
         _applyBackgroundOpacity(value.substring(8), style);
+      } else if (value == 'transparent') {
+        // Explicitly handle transparent background
+        style.backgroundColor = Colors.transparent;
       } else {
         final semanticColor = TailwindConfig.resolveColorToken(value);
         if (semanticColor != null) {

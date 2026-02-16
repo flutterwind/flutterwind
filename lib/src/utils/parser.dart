@@ -8,6 +8,7 @@ import 'package:flutterwind_core/src/classes/aspect_ratio.dart';
 import 'package:flutterwind_core/src/classes/filter_effects.dart';
 import 'package:flutterwind_core/src/classes/input.dart';
 import 'package:flutterwind_core/src/classes/text_effects.dart';
+import 'package:flutterwind_core/src/widgets/ring_painter.dart';
 import 'package:flutterwind_core/src/classes/transform_utils.dart';
 import 'package:flutterwind_core/src/classes/position.dart';
 import 'package:flutterwind_core/src/classes/sizing.dart';
@@ -25,6 +26,13 @@ import 'package:flutterwind_core/src/plugin/class_handler_registry.dart';
 import 'package:flutterwind_core/src/presets/component_presets.dart';
 import 'package:flutterwind_core/src/widgets/performance_widgets.dart';
 
+String mergeClasses(List<String?> classes) {
+  return classes
+      .whereType<String>()
+      .where((c) => c.trim().isNotEmpty)
+      .join(' ');
+}
+
 class FlutterWindStyle {
   EdgeInsets? padding;
   EdgeInsets? margin;
@@ -33,6 +41,9 @@ class FlutterWindStyle {
   Color? textColor;
   FontWeight? fontWeight;
   BorderRadius? borderRadius;
+  Color? borderColor;
+  double? borderWidth;
+  Border? border; // For directional border control
   double? opacity;
   List<BoxShadow>? boxShadows;
   TextAlign? textAlign;
@@ -58,6 +69,10 @@ class FlutterWindStyle {
   double? height; // Fixed height in pixels
   double? widthFactor; // Relative width (e.g. 0.5 for 50%)
   double? heightFactor; // Relative height
+  double? minWidth; // Minimum width constraint
+  double? minHeight; // Minimum height constraint
+  double? maxWidth; // Maximum width constraint
+  double? maxHeight; // Maximum height constraint
 
   // NEW: Overflow handling
   bool? overFlowScroll;
@@ -71,6 +86,8 @@ class FlutterWindStyle {
   BoxShadow? ringShadow;
   Color? ringColor;
   double? ringWidth;
+  Color? ringOffsetColor;
+  double? ringOffsetWidth;
 
   MainAxisAlignment? mainAxisAlignment;
   CrossAxisAlignment? crossAxisAlignment;
@@ -240,11 +257,25 @@ class FlutterWindStyle {
     }
 
     // Apply typography features
-    if (textDecoration != null ||
-        textTransform != null ||
-        fontVariantNumeric != null ||
-        textIndent != null) {
+    final hasTextStyles = textColor != null ||
+        textSize != null ||
+        fontWeight != null ||
+        letterSpacing != null ||
+        wordSpacing != null ||
+        lineHeight != null ||
+        textShadows != null ||
+        textDecoration != null ||
+        fontVariantNumeric != null;
+
+    if (hasTextStyles || textTransform != null || textIndent != null) {
       final textStyle = TextStyle(
+        color: textColor,
+        fontSize: textSize,
+        fontWeight: fontWeight,
+        letterSpacing: letterSpacing,
+        wordSpacing: wordSpacing,
+        height: lineHeight,
+        shadows: textShadows,
         decoration: textDecoration,
         fontFeatures: fontVariantNumeric != null ? [fontVariantNumeric!] : null,
       );
@@ -259,6 +290,13 @@ class FlutterWindStyle {
         current = Text(
           content,
           style: textWidget.style?.copyWith(
+                color: textColor,
+                fontSize: textSize,
+                fontWeight: fontWeight,
+                letterSpacing: letterSpacing,
+                wordSpacing: wordSpacing,
+                height: lineHeight,
+                shadows: textShadows,
                 decoration: textDecoration,
                 fontFeatures:
                     fontVariantNumeric != null ? [fontVariantNumeric!] : null,
@@ -269,9 +307,10 @@ class FlutterWindStyle {
           overflow: textWidget.overflow,
           softWrap: textWidget.softWrap,
         );
-      } else if (textDecoration != null || fontVariantNumeric != null) {
+      } else if (hasTextStyles) {
         current = DefaultTextStyle.merge(
           style: textStyle,
+          textAlign: textAlign,
           child: current,
         );
       }
@@ -498,6 +537,13 @@ class FlutterWindStyle {
               decoration: BoxDecoration(
                 color: backgroundColor,
                 borderRadius: borderRadius,
+                border: border ??
+                    (borderWidth != null || borderColor != null
+                        ? Border.all(
+                            color: borderColor ?? const Color(0xFFE5E7EB),
+                            width: borderWidth ?? 0.0,
+                          )
+                        : null),
                 boxShadow: boxShadows,
               ),
               child: current,
@@ -508,6 +554,13 @@ class FlutterWindStyle {
               decoration: BoxDecoration(
                 color: backgroundColor,
                 borderRadius: borderRadius,
+                border: border ??
+                    (borderWidth != null || borderColor != null
+                        ? Border.all(
+                            color: borderColor ?? const Color(0xFFE5E7EB),
+                            width: borderWidth ?? 0.0,
+                          )
+                        : null),
                 boxShadow: boxShadows,
               ),
               child: current,
@@ -519,20 +572,39 @@ class FlutterWindStyle {
       // For now, we leave them as a property on the style.
     }
 
-    // Handle ring effect using box shadows
-    if (ringShadow != null || ringColor != null || ringWidth != null) {
-      current = Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            if (ringShadow != null) ringShadow!,
-            BoxShadow(
-              color: ringColor ?? Colors.transparent,
-              spreadRadius: (ringWidth ?? 0) * 0.5,
-              blurRadius: 0,
-            ),
-          ],
+    // ALWAYS wrap Container with CustomPaint so the widget tree structure
+    // never changes when ring classes are toggled (e.g. focus:ring-*).
+    // When no ring is active, it paints transparent with 0 radius (no-op).
+    // This prevents TextField from being remounted and losing focus.
+    if (current is Container) {
+      final container = current as Container;
+      final existingDecoration = container.decoration as BoxDecoration? ?? const BoxDecoration();
+      
+      final borderRadius = existingDecoration.borderRadius as BorderRadius?;
+      final borderRadiusValue = borderRadius?.topLeft.x ?? 0.0;
+      
+      final hasRing = ringShadow != null || ringColor != null || ringWidth != null;
+      
+      current = CustomPaint(
+        painter: RingPainter(
+          glowColor: hasRing ? (ringColor ?? Colors.transparent) : Colors.transparent,
+          glowRadius: hasRing ? (ringWidth ?? 3.0) : 0.0,
+          borderRadius: borderRadiusValue,
+          offsetWidth: hasRing ? (ringOffsetWidth ?? 0.0) : 0.0,
+          offsetColor: hasRing ? (ringOffsetColor ?? Colors.white) : Colors.white,
         ),
-        child: current,
+        child: Container(
+          alignment: container.alignment,
+          padding: container.padding,
+          margin: container.margin,
+          clipBehavior: Clip.none,
+          transform: container.transform,
+          transformAlignment: container.transformAlignment,
+          foregroundDecoration: container.foregroundDecoration,
+          constraints: container.constraints,
+          decoration: existingDecoration,
+          child: container.child,
+        ),
       );
     }
 
@@ -661,7 +733,7 @@ class FlutterWindStyle {
   }
 }
 
-enum _VariantState { hover, focus, focusVisible, active, disabled }
+enum _VariantState { hover, focus, focusVisible, active, disabled, ariaInvalid }
 
 const List<String> kFlutterWindSupportedVariants = <String>[
   'dark',
@@ -683,6 +755,8 @@ const List<String> kFlutterWindSupportedVariants = <String>[
   'peer-disabled',
   'disabled',
   'input-disabled',
+  'aria-invalid',
+  'placeholder',
 ];
 
 const List<String> kFlutterWindSupportedUtilityPrefixes = <String>[
@@ -734,6 +808,10 @@ const List<String> kFlutterWindSupportedUtilityPrefixes = <String>[
   'shadow',
   'w-',
   'h-',
+  'min-w-',
+  'min-h-',
+  'max-w-',
+  'max-h-',
   'size-',
   'overflow-',
   'aspect-',
@@ -775,6 +853,10 @@ const List<String> kFlutterWindSupportedUtilityPrefixes = <String>[
   'btn-',
   'card-',
   'border',
+  'ring',
+  'ring-',
+  'ring-offset-',
+  'underline-offset-',
 ];
 
 const Set<String> kFlutterWindSupportedExactUtilities = <String>{
@@ -804,6 +886,8 @@ const Set<String> kFlutterWindSupportedExactUtilities = <String>{
   'card-header',
   'card-body',
   'input-filled',
+  'inline-flex',
+  'whitespace-nowrap',
 };
 
 enum FlutterWindDiagnosticSeverity { info, warning, error }
@@ -1144,6 +1228,7 @@ class _InteractiveVariantWrapperState extends State<_InteractiveVariantWrapper> 
   bool _isFocused = false;
   bool _isFocusVisible = false;
   bool _isActive = false;
+  FocusNode? _trackedFocusNode;
 
   Set<_VariantState> get _activeStates {
     final states = <_VariantState>{};
@@ -1173,6 +1258,47 @@ class _InteractiveVariantWrapperState extends State<_InteractiveVariantWrapper> 
     return classes;
   }
 
+  void _onTextFieldFocusChange() {
+    final hasFocus = _trackedFocusNode?.hasFocus ?? false;
+    if (_isFocused != hasFocus) {
+      setState(() {
+        _isFocused = hasFocus;
+        _isFocusVisible = hasFocus;
+      });
+    }
+  }
+
+  void _trackTextFieldFocus() {
+    if (widget.child is! TextField) return;
+    final textField = widget.child as TextField;
+    final focusNode = textField.focusNode;
+    if (focusNode != _trackedFocusNode) {
+      _trackedFocusNode?.removeListener(_onTextFieldFocusChange);
+      _trackedFocusNode = focusNode;
+      _trackedFocusNode?.addListener(_onTextFieldFocusChange);
+      _isFocused = _trackedFocusNode?.hasFocus ?? false;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _trackTextFieldFocus();
+  }
+
+  @override
+  void didUpdateWidget(covariant _InteractiveVariantWrapper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _trackTextFieldFocus();
+  }
+
+  @override
+  void dispose() {
+    _trackedFocusNode?.removeListener(_onTextFieldFocusChange);
+    _trackedFocusNode = null;
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final built = _buildWidgetFromUtilities(
@@ -1180,6 +1306,20 @@ class _InteractiveVariantWrapperState extends State<_InteractiveVariantWrapper> 
       _composeUtilities(),
       diagnosticsCollector: widget.diagnosticsCollector,
     );
+    
+    // For TextField: just pass through with MouseRegion for hover.
+    // Ring and focus are handled at the component level (e.g. ShadcnInput)
+    // to avoid widget tree changes that cause TextField to lose focus.
+    if (widget.child is TextField) {
+      return MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        cursor: SystemMouseCursors.text,
+        child: built,
+      );
+    }
+    
+    // For non-TextField widgets, FocusableActionDetector is fine
     return FocusableActionDetector(
       onFocusChange: (value) => setState(() => _isFocused = value),
       onShowFocusHighlight: (value) =>
@@ -1297,21 +1437,24 @@ _ParsedClassToken? _parseClassToken(String token) {
   );
 }
 
-bool _matchesStaticVariants(List<String> variants, BuildContext? context) {
+bool _matchesStaticVariants(List<String> variants, BuildContext? context,
+    {bool invalid = false}) {
   if (variants.isEmpty) return true;
 
   final screens = TailwindConfig.screens;
   for (final variant in variants) {
+    if (variant == 'aria-invalid') {
+      if (!invalid) return false;
+      continue;
+    }
     if (variant == 'dark') {
-      if (context == null ||
-          Theme.of(context).brightness != Brightness.dark) {
+      if (context == null || Theme.of(context).brightness != Brightness.dark) {
         return false;
       }
       continue;
     }
     if (variant == 'light') {
-      if (context == null ||
-          Theme.of(context).brightness != Brightness.light) {
+      if (context == null || Theme.of(context).brightness != Brightness.light) {
         return false;
       }
       continue;
@@ -1506,7 +1649,9 @@ Widget _buildWidgetFromUtilities(
 
 /// Parses and applies Tailwind-like classes to a widget.
 Widget applyFlutterWind(Widget widget, List<String> classes,
-    [BuildContext? context, FlutterWindDiagnosticsCollector? diagnosticsCollector]) {
+    [BuildContext? context,
+    FlutterWindDiagnosticsCollector? diagnosticsCollector,
+    bool invalid = false]) {
   final baseUtilities = <String>[];
   final conditionalUtilities = <_ConditionalUtility>[];
   var isGroupHost = false;
@@ -1543,7 +1688,7 @@ Widget applyFlutterWind(Widget widget, List<String> classes,
       continue;
     }
 
-    if (!_matchesStaticVariants(parsed.variants, context)) {
+    if (!_matchesStaticVariants(parsed.variants, context, invalid: invalid)) {
       continue;
     }
 
@@ -1871,28 +2016,51 @@ void _ensureDefaultClassHandlersRegistered() {
 
 // Helper function to create styled TextField
 Widget _createStyledTextField(TextField textField, FlutterWindStyle style) {
-  final decoration = textField.decoration?.copyWith(
-    border: style.inputBorder,
-    contentPadding: style.inputPadding,
-    enabledBorder: style.inputBorder?.copyWith(
-      borderSide: BorderSide(
-        color: style.inputHoverBorderColor ?? Colors.grey,
-      ),
-    ),
-    focusedBorder: style.inputBorder?.copyWith(
-      borderSide: BorderSide(
-        color: style.inputFocusBorderColor ?? Colors.blue,
-        width: style.inputFocusWidth ?? 2.0,
-      ),
-    ),
-    disabledBorder: style.inputBorder?.copyWith(
-      borderSide: BorderSide(
-        color: Colors.grey.shade300,
-      ),
-    ),
-    filled: style.inputHoverBackgroundColor != null,
-    fillColor: style.inputHoverBackgroundColor,
-  );
+  // Preserve the original decoration's border if it was explicitly set to none
+  final originalDecoration = textField.decoration;
+  final shouldUseNoBorder = originalDecoration?.border == InputBorder.none &&
+      originalDecoration?.enabledBorder == InputBorder.none &&
+      originalDecoration?.focusedBorder == InputBorder.none;
+
+  InputDecoration? decoration;
+  if (shouldUseNoBorder) {
+    // Keep the original decoration with no borders - FlutterWind className handles styling
+    decoration = originalDecoration?.copyWith(
+      // Ensure background is properly handled
+      filled: style.backgroundColor != null && style.backgroundColor != Colors.transparent,
+      fillColor: style.backgroundColor,
+    );
+  } else {
+    // Apply style-based borders only if original didn't explicitly disable them
+    decoration = originalDecoration?.copyWith(
+      border: style.inputBorder ?? originalDecoration.border,
+      contentPadding: style.inputPadding ?? originalDecoration.contentPadding,
+      enabledBorder: style.inputBorder != null
+          ? style.inputBorder?.copyWith(
+              borderSide: BorderSide(
+                color: style.inputHoverBorderColor ?? Colors.grey,
+              ),
+            )
+          : originalDecoration.enabledBorder,
+      focusedBorder: style.inputBorder != null
+          ? style.inputBorder?.copyWith(
+              borderSide: BorderSide(
+                color: style.inputFocusBorderColor ?? Colors.blue,
+                width: style.inputFocusWidth ?? 2.0,
+              ),
+            )
+          : originalDecoration.focusedBorder,
+      disabledBorder: style.inputBorder != null
+          ? style.inputBorder?.copyWith(
+              borderSide: BorderSide(
+                color: Colors.grey.shade300,
+              ),
+            )
+          : originalDecoration.disabledBorder,
+      filled: style.backgroundColor != null && style.backgroundColor != Colors.transparent,
+      fillColor: style.backgroundColor,
+    );
+  }
 
   return TextField(
     controller: textField.controller,

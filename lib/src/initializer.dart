@@ -8,6 +8,7 @@ import 'package:flutterwind_core/src/utils/developer_tools.dart';
 class FlutterWind extends StatefulWidget {
   final Widget? child;
   final Widget? loadingWidget;
+  final VoidCallback? onInitComplete;
   final bool showDevTools;
   final Color? devToolsBackgroundColor;
   final Color? devToolsTextColor;
@@ -42,6 +43,7 @@ class FlutterWind extends StatefulWidget {
     super.key,
     this.child,
     this.loadingWidget,
+    this.onInitComplete,
     this.showDevTools = false,
     this.devToolsBackgroundColor,
     this.devToolsTextColor,
@@ -99,13 +101,17 @@ class _FlutterWindState extends State<FlutterWind> with WidgetsBindingObserver {
         setState(() {
           _isLoaded = true;
         });
+        // Notify user that initialization is complete
+        widget.onInitComplete?.call();
       }
     } catch (e, stackTrace) {
-      // You may use your logging mechanism here.
       Log.e('Error loading configuration', e, stackTrace);
-      setState(() {
-        _isLoaded = true; // continue even if error occurs
-      });
+      if (mounted) {
+        setState(() {
+          _isLoaded = true; // Continue even if error occurs
+        });
+        widget.onInitComplete?.call();
+      }
     }
   }
 
@@ -113,7 +119,14 @@ class _FlutterWindState extends State<FlutterWind> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     if (!_isLoaded) {
       return widget.loadingWidget ??
-          const Center(child: CircularProgressIndicator());
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
     }
 
     Widget child = widget.child ?? widget.home ?? const SizedBox.shrink();
@@ -152,13 +165,7 @@ class _FlutterWindState extends State<FlutterWind> with WidgetsBindingObserver {
           widget.home == null ? widget.onGenerateInitialRoutes : null,
       onGenerateRoute: widget.home == null ? widget.onGenerateRoute : null,
       // Only set home if routing is not provided
-      home: widget.home != null
-          ? MediaQuery(
-              // Create a new MediaQuery that will rebuild on size changes
-              data: MediaQuery.of(context).copyWith(),
-              child: child,
-            )
-          : null,
+      home: widget.home != null ? child : null,
     );
   }
 }

@@ -15,10 +15,16 @@ class AccessibilityClass {
   };
 
   static void apply(String className, FlutterWindStyle style) {
+    // Note: outline-none in Tailwind CSS is VISUAL ONLY (outline: none;)
+    // It does NOT prevent focus - the element remains fully interactive
+    // Therefore we should NOT set focusable=false for outline-none
     if (className == 'outline-none') {
-      style.focusable = false;
+      // Visual style only - could be used for custom rendering if needed
+      // For now, we just ignore it (no functional impact)
+      return;
     } else if (className == 'outline') {
-      style.focusable = true;
+      // Default outline style - also visual only
+      return;
     } else if (className == 'sr-only') {
       style.screenReaderOnly = true;
       style.semanticsLabel ??= '';

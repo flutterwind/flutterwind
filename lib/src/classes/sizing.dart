@@ -39,7 +39,19 @@ class SizingClass {
   };
 
   static void apply(String cls, FlutterWindStyle style) {
-    if (cls.startsWith('w-')) {
+    if (cls.startsWith('min-w-')) {
+      final value = cls.substring(6);
+      _applyMinWidth(value, style);
+    } else if (cls.startsWith('min-h-')) {
+      final value = cls.substring(6);
+      _applyMinHeight(value, style);
+    } else if (cls.startsWith('max-w-')) {
+      final value = cls.substring(6);
+      _applyMaxWidth(value, style);
+    } else if (cls.startsWith('max-h-')) {
+      final value = cls.substring(6);
+      _applyMaxHeight(value, style);
+    } else if (cls.startsWith('w-')) {
       final value = cls.substring(2);
       _applyWidth(value, style);
     } else if (cls.startsWith('h-')) {
@@ -170,6 +182,56 @@ class SizingClass {
       style.height = null;
       style.heightFactor = null;
     }
+  }
+
+  static void _applyMinWidth(String value, FlutterWindStyle style) {
+    final parsed = _parseSizeValue(value);
+    if (parsed != null) {
+      style.minWidth = parsed;
+    }
+  }
+
+  static void _applyMinHeight(String value, FlutterWindStyle style) {
+    final parsed = _parseSizeValue(value);
+    if (parsed != null) {
+      style.minHeight = parsed;
+    }
+  }
+
+  static void _applyMaxWidth(String value, FlutterWindStyle style) {
+    final parsed = _parseSizeValue(value);
+    if (parsed != null) {
+      style.maxWidth = parsed;
+    }
+  }
+
+  static void _applyMaxHeight(String value, FlutterWindStyle style) {
+    final parsed = _parseSizeValue(value);
+    if (parsed != null) {
+      style.maxHeight = parsed;
+    }
+  }
+
+  static double? _parseSizeValue(String value) {
+    if (value.startsWith('[') && value.endsWith(']')) {
+      final inner = value.substring(1, value.length - 1);
+      if (inner.endsWith('rem')) {
+        final rem = double.tryParse(inner.replaceAll('rem', ''));
+        return rem != null ? rem * 16 : null;
+      } else {
+        final px = inner.replaceAll('px', '');
+        return double.tryParse(px);
+      }
+    } else if (value == '0') {
+      return 0.0;
+    } else if (sizingScale.containsKey(value)) {
+      return sizingScale[value];
+    } else if (TailwindConfig.spacing.containsKey(value)) {
+      return TailwindConfig.spacing[value];
+    } else if (containerSizes.containsKey(value)) {
+      return containerSizes[value];
+    }
+    return null;
   }
 
   static void _applySize(String value, FlutterWindStyle style) {

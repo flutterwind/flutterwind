@@ -44,14 +44,14 @@ class ColorsClass {
       if (value.startsWith('gradient-to-')) {
         _applyGradient(value.substring(11), style);
       } else {
-        Color? color = _parseColor(value);
+        Color? color = parseColor(value); // Updated to public method
         if (color != null) {
           style.backgroundColor = color;
         }
       }
     } else if (cls.startsWith('text-')) {
       final value = cls.substring(5);
-      Color? color = _parseColor(value);
+      Color? color = parseColor(value); // Updated to public method
       if (color != null) {
         style.textColor = color;
       }
@@ -128,7 +128,7 @@ class ColorsClass {
 
   static void _addGradientColor(String value, FlutterWindStyle style,
       {bool isFrom = false, bool isVia = false, bool isTo = false}) {
-    Color? color = _parseColor(value);
+    Color? color = parseColor(value); // Updated to public method
     if (color == null) return;
 
     style.gradientColors ??= [];
@@ -147,13 +147,34 @@ class ColorsClass {
     }
   }
 
-  static Color? _parseColor(String value) {
-    if (value.startsWith('[') && value.endsWith(']')) {
-      final inner = value.substring(1, value.length - 1);
-      return _parseHexColor(inner);
-    } else {
-      return _parseTailwindColor(value);
+  static Color? parseColor(String value) {
+    // Check for opacity modifier
+    String colorValue = value;
+    double? opacity;
+
+    if (value.contains('/') && !value.contains('[')) {
+      final parts = value.split('/');
+      if (parts.length == 2) {
+        colorValue = parts[0];
+        final opacityValue = int.tryParse(parts[1]);
+        if (opacityValue != null) {
+          opacity = opacityValue / 100.0;
+        }
+      }
     }
+
+    Color? color;
+    if (colorValue.startsWith('[') && colorValue.endsWith(']')) {
+      final inner = colorValue.substring(1, colorValue.length - 1);
+      color = _parseHexColor(inner);
+    } else {
+      color = _parseTailwindColor(colorValue);
+    }
+
+    if (color != null && opacity != null) {
+      return color.withValues(alpha: opacity);
+    }
+    return color;
   }
 
   static Color? _parseHexColor(String hex) {
@@ -164,21 +185,7 @@ class ColorsClass {
   }
 
   static Color? _parseTailwindColor(String value) {
-    final parts = value.split('-');
-    if (parts.length == 2) {
-      final base = parts[0];
-      final shade = int.tryParse(parts[1]);
-      if (shade != null && TailwindConfig.colors.containsKey(base)) {
-        return TailwindConfig.colors[base]?[shade];
-      }
-    } else if (parts.length == 1) {
-      final base = parts[0];
-      if (TailwindConfig.colors.containsKey(base)) {
-        return TailwindConfig.colors[base]
-            ?[500]; // Return the full color map instead of forcing shade 500
-      }
-    }
-    return baseColors[value];
+    return TailwindConfig.resolveColorToken(value) ?? baseColors[value];
   }
 
   static double _shadeToOpacity(int shade) {

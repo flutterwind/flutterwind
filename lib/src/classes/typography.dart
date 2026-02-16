@@ -43,6 +43,17 @@ class TypographyClass {
       _applyListStyle(cls.substring(5), style);
     } else if (cls.startsWith('numeric-')) {
       _applyFontVariantNumeric(cls.substring(8), style);
+    } else if (cls == 'whitespace-nowrap') {
+      style.textWrap = false;
+    } else if (cls.startsWith('whitespace-')) {
+       // normal, pre, etc.
+       final value = cls.substring(11);
+       if (value == 'normal') style.textWrap = true;
+       // pre, pre-line, pre-wrap imply specific softWrap/overflow behaviors
+       // For now, just handle nowrap
+    } else if (cls.startsWith('underline-offset-')) {
+      // Ignored for now as Flutter TextStyle doesn't support underline offset directly
+      // but we consume it to prevent errors.
     }
   }
 

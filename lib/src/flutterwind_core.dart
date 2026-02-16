@@ -8,6 +8,7 @@ import 'package:flutterwind_core/src/utils/parser.dart';
 extension FlutterWindExtension on Widget {
   Widget className(
     String classString, {
+    bool invalid = false,
     FlutterWindDiagnosticsCollector? diagnosticsCollector,
   }) {
     return Builder(
@@ -16,7 +17,8 @@ extension FlutterWindExtension on Widget {
         MediaQuery.of(context);
 
         final classes = tokenizeFlutterWindClasses(classString);
-        return applyFlutterWind(this, classes, context, diagnosticsCollector);
+        return applyFlutterWind(
+            this, classes, context, diagnosticsCollector, invalid);
       },
     );
   }

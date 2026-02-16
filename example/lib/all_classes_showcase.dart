@@ -13,9 +13,7 @@ class AllClassesShowcase extends StatelessWidget {
         children: [
           _section(
             'Spacing + Colors + Borders + Shadow + Opacity',
-            Container(
-              child: const Text('Card utility stack'),
-            ).className(
+            Container(child: const Text('Card utility stack')).className(
               'p-4 m-2 bg-blue-500 rounded-lg shadow-lg opacity-75 text-white',
             ),
           ),
@@ -37,14 +35,15 @@ class AllClassesShowcase extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Heading example').className(
-                  'text-2xl font-bold tracking-wide text-purple-600',
-                ),
-                Text('uppercase + underline + shadow').className(
-                  'uppercase underline text-shadow-sm text-lg',
-                ),
-                Text('ellipsis example that should truncate in one line')
-                    .className('text-ellipsis w-[14rem]'),
+                Text(
+                  'Heading example',
+                ).className('text-2xl font-bold tracking-wide text-purple-600'),
+                Text(
+                  'uppercase + underline + shadow',
+                ).className('uppercase underline text-shadow-sm text-lg'),
+                Text(
+                  'ellipsis example that should truncate in one line',
+                ).className('text-ellipsis w-[14rem]'),
               ],
             ),
           ),
@@ -137,8 +136,9 @@ class AllClassesShowcase extends StatelessWidget {
                 ).className('input-md border-rounded focus:border-blue-500'),
                 const SizedBox(height: 12),
                 TextFormField(
-                  decoration:
-                      const InputDecoration(hintText: 'Form input sample'),
+                  decoration: const InputDecoration(
+                    hintText: 'Form input sample',
+                  ),
                 ).className('input-sm border-outline hover:bg-gray-100'),
               ],
             ),
@@ -167,7 +167,9 @@ class AllClassesShowcase extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Card header').className('card-header'),
-                      Text('Card body text with muted tone').className('card-body'),
+                      Text(
+                        'Card body text with muted tone',
+                      ).className('card-body'),
                     ],
                   ),
                 ).className('card'),
@@ -216,10 +218,7 @@ class AllClassesShowcase extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title).className('text-lg font-semibold mb-2'),
-          child,
-        ],
+        children: [Text(title).className('text-lg font-semibold mb-2'), child],
       ),
     );
   }
@@ -231,8 +230,10 @@ class AllClassesShowcase extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
-        style:
-            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     ).className('rounded-md');
   }

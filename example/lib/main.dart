@@ -47,6 +47,7 @@ class _MyAppState extends State<MyApp> {
   int _tapCount = 0;
   DateTime? _lastTapTime;
   ThemeMode _themeMode = ThemeMode.dark;
+  bool _isFlutterWindReady = false;
 
   void _handleSecretGesture(BuildContext context) {
     final now = DateTime.now();
@@ -99,6 +100,61 @@ class _MyAppState extends State<MyApp> {
           child: FlutterWind(
             showDevTools: enabled,
             title: 'FlutterWind Demo',
+            // Custom splash/loading screen
+            loadingWidget: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                brightness: Brightness.dark,
+                useMaterial3: true,
+              ),
+              home: Scaffold(
+                backgroundColor: Colors.deepPurple.shade900,
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.wind_power,
+                        size: 80,
+                        color: Colors.white,
+                      ),
+                      SizedBox(height: 24),
+                      Text(
+                        'FlutterWind',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Loading configuration...',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Callback when initialization completes
+            onInitComplete: () {
+              setState(() {
+                _isFlutterWindReady = true;
+              });
+            },
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
               useMaterial3: true,
@@ -158,9 +214,7 @@ class ExamplesHome extends StatelessWidget {
                     : 'Show Developer Tools',
                 onPressed: () => onToggleDevTools(context),
                 icon: Icon(
-                  enabled
-                      ? Icons.bug_report
-                      : Icons.bug_report_outlined,
+                  enabled ? Icons.bug_report : Icons.bug_report_outlined,
                 ),
               );
             },
@@ -187,9 +241,7 @@ class ExamplesHome extends StatelessWidget {
             subtitle: Text(example.description),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => example.page,
-              ),
+              MaterialPageRoute(builder: (context) => example.page),
             ),
           );
         },

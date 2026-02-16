@@ -355,11 +355,49 @@ class TailwindConfig {
       final token = _extractCssVarName(raw);
       return _parseHSLColor(token);
     }
+    if (raw.startsWith('hsl(')) {
+      return _parseRawHSLColor(raw);
+    }
     if (raw.startsWith('#')) {
       return _parseHexColor(raw);
     }
     final colorToken = resolveColorToken(raw);
     if (colorToken != null) return colorToken;
+    return null;
+  }
+
+  static Color? _parseRawHSLColor(String hslString) {
+    try {
+      // Remove hsl( and )
+      String content = hslString.substring(4, hslString.length - 1).trim();
+      List<String> parts;
+      if (content.contains(',')) {
+        parts = content.split(',').map((e) => e.trim()).toList();
+      } else {
+        parts = content.split(RegExp(r'\s+')).map((e) => e.trim()).toList();
+      }
+
+      if (parts.length >= 3) {
+        final h = double.tryParse(parts[0]) ?? 0;
+        final sStr = parts[1].replaceAll('%', '');
+        final lStr = parts[2].replaceAll('%', '');
+        final s = double.tryParse(sStr) ?? 0;
+        final l = double.tryParse(lStr) ?? 0;
+        double a = 1.0;
+        if (parts.length > 3) {
+           String aStr = parts[3].replaceAll('%', '');
+           if (parts[3].contains('/')) { // handling slash syntax if somehow leaked
+             aStr = parts[3].replaceAll('/', '');
+           }
+           a = double.tryParse(aStr) ?? 1.0;
+           // If alpha was percentage, normalize? But usually 0-1 in CSS unless %
+           // Let's assume 0-1 unless %
+        }
+        return _hsl(h, s, l, a).toColor();
+      }
+    } catch (e) {
+      Log.e("Error parsing HSL: $hslString - $e");
+    }
     return null;
   }
 
